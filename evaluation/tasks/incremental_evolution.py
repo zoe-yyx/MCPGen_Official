@@ -5,7 +5,7 @@ Q3: Incremental Evolution Evaluation
 ------------------------------------
 
 Goal:
-Given 50+ MCP projects, each with a *baseline* `workflow_simple.json` and a ground-truth full `workflow.json`,
+Given 100 MCP projects, each with a *baseline* `workflow_simple.json` and a ground-truth full `workflow.json`,
 ask an LLM to evolve the baseline into a complete workflow **with minimal augmentation** while preserving all
 previously satisfied behaviors. The LLM must also generate a `run_workflow.py` that **actually** uses MCP tools.
 
