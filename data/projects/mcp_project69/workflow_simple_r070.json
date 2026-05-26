@@ -1,0 +1,285 @@
+{
+  "workflow": {
+    "name": "Docker Management Bot via Telegram",
+    "description": "Monitors Docker containers via Uptime Kuma webhooks and enables Telegram-based management: AI log analysis, container restart, status check, and Docker image updates via SSH commands.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "docker",
+      "telegram",
+      "monitoring",
+      "AI",
+      "devops",
+      "uptime-kuma",
+      "SSH"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "API key for OpenAI GPT used to analyze Docker container logs",
+        "validation_pattern": "^sk-.*$",
+        "example": "REDACTED_API_KEY"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API endpoint",
+        "validation_pattern": "^https?://.+$",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": false,
+        "description": "LLM model name for log analysis",
+        "validation_pattern": "^[\\w\\-\\.]+$",
+        "example": "gpt-5.1"
+      },
+      "TELEGRAM_BOT_TOKEN": {
+        "required": false,
+        "description": "Telegram bot token (mocked in this project)",
+        "validation_pattern": "^.+$",
+        "example": "your-telegram-bot-token"
+      },
+      "TELEGRAM_CHAT_ID": {
+        "required": false,
+        "description": "Telegram chat ID for sending messages (mocked)",
+        "validation_pattern": "^\\d+$",
+        "example": "123456789"
+      },
+      "SSH_HOST": {
+        "required": false,
+        "description": "Remote server IP/hostname for SSH Docker commands (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "192.168.1.100"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "Receive Uptime Kuma Webhook",
+      "type": "trigger",
+      "description": "Receive heartbeat webhook from Uptime Kuma monitoring tool with container status",
+      "mcp_tool": "receive_uptime_webhook",
+      "parameters": {
+        "input": {
+          "heartbeat_msg": "running | <error description>",
+          "heartbeat_time": "ISO timestamp",
+          "monitor_name": "monitor display name",
+          "monitor_docker_container": "container name"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "Check Heartbeat Status",
+      "type": "routing",
+      "description": "Route by heartbeat message: 'running' → OK, anything else → ERROR alert",
+      "mcp_tool": "check_heartbeat_status",
+      "parameters": {
+        "input": {
+          "webhook_data": "{{ step1.data }}"
+        }
+      },
+      "next_steps": [
+        "3",
+        "4"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "Send OK Notification",
+      "type": "output",
+      "description": "Send 'service is running' OK message to Telegram",
+      "mcp_tool": "send_ok_notification",
+      "condition": "route == 'ok'",
+      "parameters": {
+        "input": {
+          "message": "{{ step2.data.ok_message }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "4",
+      "name": "Send Error Notification",
+      "type": "output",
+      "description": "Send error alert to Telegram with quick-action keyboard (Logs / Restart buttons)",
+      "mcp_tool": "send_error_notification",
+      "condition": "route == 'error'",
+      "parameters": {
+        "input": {
+          "docker_container": "{{ step2.data.docker_container }}",
+          "issue": "{{ step1.data.body.heartbeat.msg }}",
+          "timestamp": "{{ step1.data.body.heartbeat.time }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "5",
+      "name": "Telegram Trigger",
+      "type": "trigger",
+      "description": "Receive a Telegram message from the user (e.g. 'nginx logs', 'restart redis', 'status', 'update')",
+      "mcp_tool": "extract_service_name",
+      "parameters": {
+        "input": {
+          "message_text": "user Telegram message text"
+        }
+      },
+      "next_steps": [
+        "6"
+      ]
+    },
+    {
+      "step_id": "6",
+      "name": "Route Command",
+      "type": "routing",
+      "description": "Parse and route the Telegram command: logs / restart / status / update",
+      "mcp_tool": "route_command",
+      "parameters": {
+        "input": {
+          "message_text": "{{ step5.data.full_text }}"
+        }
+      },
+      "next_steps": [
+        "7",
+        "10",
+        "13",
+        "15"
+      ]
+    },
+    {
+      "step_id": "7",
+      "name": "Get Docker Logs",
+      "type": "processing",
+      "description": "Fetch last 100 log lines from the specified container via SSH",
+      "mcp_tool": "get_docker_logs",
+      "condition": "command == 'logs'",
+      "parameters": {
+        "input": {
+          "service_name": "{{ step5.data.service_name }}",
+          "tail": 100
+        }
+      },
+      "next_steps": [
+        "8"
+      ]
+    },
+    {
+      "step_id": "8",
+      "name": "Send Analyzing Status",
+      "type": "output",
+      "description": "Notify user 'Analyzing Log File...' while AI processes the logs",
+      "mcp_tool": "send_analyzing_status",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "9"
+      ]
+    },
+    {
+      "step_id": "9",
+      "name": "Analyze Logs with AI",
+      "type": "ai_processing",
+      "description": "GPT acts as senior IT specialist to analyze logs and provide structured diagnosis",
+      "mcp_tool": "analyze_logs_with_ai",
+      "parameters": {
+        "input": {
+          "log_stdout": "{{ step7.data.stdout }}"
+        }
+      },
+      "next_steps": [
+        "10"
+      ]
+    },
+    {
+      "step_id": "10",
+      "name": "Send Log Analysis",
+      "type": "output",
+      "description": "Send AI-generated log analysis to Telegram user",
+      "mcp_tool": "send_log_analysis",
+      "parameters": {
+        "input": {
+          "analysis_text": "{{ step9.data.analysis }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "11",
+      "name": "Send Restart Message",
+      "type": "output",
+      "description": "Notify user 'Attempting to restart...' before executing restart",
+      "mcp_tool": "send_restart_message",
+      "condition": "command == 'restart'",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "12"
+      ]
+    },
+    {
+      "step_id": "12",
+      "name": "Restart Docker Container",
+      "type": "processing",
+      "description": "Execute 'docker restart <service>' via SSH",
+      "mcp_tool": "restart_docker_container",
+      "parameters": {
+        "input": {
+          "service_name": "{{ step5.data.service_name }}"
+        }
+      },
+      "next_steps": [
+        "13"
+      ]
+    },
+    {
+      "step_id": "13",
+      "name": "Check Restart Success",
+      "type": "routing",
+      "description": "Check whether restart succeeded (stderr is empty → success)",
+      "mcp_tool": "check_restart_success",
+      "parameters": {
+        "input": {
+          "restart_result": "{{ step12.data }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "14",
+      "name": "Send Restart Success",
+      "type": "output",
+      "description": "Notify user that container was successfully restarted",
+      "mcp_tool": "send_restart_success",
+      "condition": "success == true",
+      "parameters": {
+        "input": {
+          "service_name": "{{ step12.data.stdout }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "15",
+      "name": "Send Restart Failed",
+      "type": "output",
+      "description": "Notify user that restart failed with error details",
+      "mcp_tool": "send_restart_failed",
+      "condition": "success == false",
+      "parameters": {
+        "input": {
+          "stderr": "{{ step12.data.stderr }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "workflow": {
+    "name": "Threads Video Downloader & Google Drive Logger",
+    "description": "Accepts a Threads URL via web form; fetches video metadata from the RapidAPI Threads Downloader; downloads the video file; uploads it to Google Drive with public sharing; logs the result (URL + Drive link or N/A) to Google Sheets. Failed downloads are logged after a brief wait.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "Threads",
+      "Google Drive",
+      "Google Sheets",
+      "video",
+      "downloader",
+      "automation"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "RAPIDAPI_KEY": {
+        "required": false,
+        "description": "RapidAPI key for Threads Downloader API (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "your_rapidapi_key_here"
+      },
+      "GOOGLE_DRIVE_FOLDER_ID": {
+        "required": false,
+        "description": "Google Drive folder ID for video uploads (mocked — saved locally)",
+        "validation_pattern": "^.+$",
+        "example": "root"
+      },
+      "GOOGLE_SHEETS_DOC_ID": {
+        "required": false,
+        "description": "Google Sheets document ID for logging (mocked — saved to local CSV)",
+        "validation_pattern": "^.+$",
+        "example": "your_sheet_id_here"
+      },
+      "GOOGLE_SHEETS_SHEET_NAME": {
+        "required": false,
+        "description": "Google Sheets tab name",
+        "validation_pattern": "^.+$",
+        "example": "Sheet1"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "On form submission",
+      "type": "trigger",
+      "description": "User submits a Threads URL via the Threads Downloader web form",
+      "mcp_tool": "submit_form",
+      "parameters": {
+        "input": {
+          "url": "ENDPOINT_PLACEHOLDER"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "Fetch Threads Video Data",
+      "type": "processing",
+      "description": "POST the URL to threads-downloader1.p.rapidapi.com to retrieve video metadata and download URLs",
+      "mcp_tool": "fetch_threads_video_data",
+      "parameters": {
+        "input": {
+          "url": "{{ step1.data.URL }}"
+        }
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "Check If Video Exists",
+      "type": "routing",
+      "description": "Verify video_urls[0].download_url is not empty; found → step 4, not found → step 8",
+      "mcp_tool": "check_video_exists",
+      "parameters": {
+        "input": {
+          "api_response_json": "{{ step2.data }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

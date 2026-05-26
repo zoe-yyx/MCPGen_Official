@@ -1,0 +1,175 @@
+{
+  "workflow": {
+    "name": "AI Image to Professional Video Workflow",
+    "description": "Converts a single image into a professional multi-shot video using NanoBanana Ultra (contact sheet) and Kling AI (video generation), then publishes via Blotato.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "image-generation",
+      "video-generation",
+      "fashion",
+      "nanobanana",
+      "kling",
+      "blotato"
+    ]
+  },
+  "configuration": {
+    "mock_mode": true,
+    "environment_variables": {
+      "ATLASCLOUD_API_KEY": {
+        "required": false,
+        "description": "AtlasCloud API key for NanoBanana ULTRA and Kling AI (mocked)"
+      },
+      "FAL_API_KEY": {
+        "required": false,
+        "description": "Fal.ai API key for FFmpeg video merge (mocked)"
+      },
+      "BLOTATO_API_KEY": {
+        "required": false,
+        "description": "Blotato API key for social media publishing (mocked)"
+      },
+      "IMAGE_CSV_PATH": {
+        "required": false,
+        "description": "Path to the image records CSV",
+        "example": "data/images.csv"
+      },
+      "SOURCE_IMAGE_DIR": {
+        "required": false,
+        "description": "Directory containing source images",
+        "example": "data/source_images"
+      },
+      "OUTPUT_DIR": {
+        "required": false,
+        "description": "Directory for output files",
+        "example": "results/outputs"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "phase": "contact_sheet",
+      "name": "Read image records",
+      "type": "data_retrieval",
+      "description": "Read image records from CSV where status = nanobanana_done (mock Google Sheets)",
+      "mcp_tool": "get_image_records",
+      "parameters": {
+        "status_filter": "nanobanana_done"
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "phase": "contact_sheet",
+      "name": "Download source image",
+      "type": "file_operation",
+      "description": "Download source image from local storage (mock Google Drive)",
+      "mcp_tool": "download_source_image",
+      "parameters": {
+        "image_filename": "<from step_1>"
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "phase": "contact_sheet",
+      "name": "Upload image for public URL",
+      "type": "file_operation",
+      "description": "Upload image to get a public URL (mock tmpfiles.org)",
+      "mcp_tool": "upload_image_public",
+      "parameters": {
+        "image_path": "<from step_2>"
+      },
+      "next_steps": [
+        "4"
+      ]
+    },
+    {
+      "step_id": "4",
+      "phase": "contact_sheet",
+      "name": "Build contact-sheet prompt",
+      "type": "prompt_generation",
+      "description": "Return the hardcoded fashion photography contact-sheet prompt",
+      "mcp_tool": "build_contact_sheet_prompt",
+      "parameters": {},
+      "next_steps": [
+        "5"
+      ]
+    },
+    {
+      "step_id": "5",
+      "phase": "contact_sheet",
+      "name": "Generate contact sheet",
+      "type": "ai_generation",
+      "description": "Generate 2x3 contact sheet with 6 camera angles (mock NanoBanana ULTRA)",
+      "mcp_tool": "generate_contact_sheet",
+      "parameters": {
+        "source_image_path": "<from step_2>"
+      },
+      "next_steps": [
+        "6"
+      ]
+    },
+    {
+      "step_id": "6",
+      "phase": "contact_sheet",
+      "name": "Poll generation result",
+      "type": "polling",
+      "description": "Poll AtlasCloud prediction endpoint for contact sheet result",
+      "mcp_tool": "poll_generation_result",
+      "parameters": {
+        "prediction_id": "<from step_5>"
+      },
+      "next_steps": [
+        "7"
+      ]
+    },
+    {
+      "step_id": "7",
+      "phase": "contact_sheet",
+      "name": "Save to Drive",
+      "type": "file_operation",
+      "description": "Upload contact sheet to Google Drive (mock)",
+      "mcp_tool": "save_to_drive",
+      "parameters": {
+        "image_path": "<from step_5>",
+        "drive_filename": "contact_sheet.png"
+      },
+      "next_steps": [
+        "8"
+      ]
+    },
+    {
+      "step_id": "8",
+      "phase": "contact_sheet",
+      "name": "Update record (contact_done)",
+      "type": "data_update",
+      "description": "Update CSV record status to contact_done",
+      "mcp_tool": "update_record",
+      "parameters": {
+        "match_field": "id",
+        "match_value": "<record_id>"
+      },
+      "next_steps": [
+        "9"
+      ]
+    },
+    {
+      "step_id": "9",
+      "phase": "video_creation",
+      "name": "Read contact_done records",
+      "type": "data_retrieval",
+      "description": "Read records with status = contact_done for video generation",
+      "mcp_tool": "get_image_records",
+      "parameters": {
+        "status_filter": "contact_done"
+      },
+      "next_steps": []
+    }
+  ]
+}

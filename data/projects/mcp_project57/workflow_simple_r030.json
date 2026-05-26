@@ -1,0 +1,81 @@
+{
+  "workflow": {
+    "name": "AI-powered concert ticket validation and fan experience orchestration",
+    "description": "Automates end-to-end concert ticket booking validation and fan experience management using two coordinated AI agents. Prevents fraud, manages inventory, and delivers seamless customer communication.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "ticketing",
+      "fraud-detection",
+      "ai-agents",
+      "concert",
+      "orchestration"
+    ]
+  },
+  "configuration": {
+    "mock_mode": true,
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "OpenAI-compatible API key for AI agent calls"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "OpenAI-compatible API base URL",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "OPENAI_MODEL": {
+        "required": false,
+        "description": "Model name for AI agent calls",
+        "example": "gpt-5.1"
+      },
+      "SAMPLE_BOOKING_PATH": {
+        "required": false,
+        "description": "Path to sample booking JSON file",
+        "example": "data/sample_booking.json"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "receive_booking",
+      "type": "source",
+      "description": "Receive ticket booking request. Replaces Ticket Booking Webhook node.",
+      "mcp_tool": "receive_booking",
+      "parameters": {
+        "input": {
+          "booking_json": "{{ file: data/sample_booking.json }}"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "get_workflow_config",
+      "type": "transform",
+      "description": "Load workflow configuration. Replaces Workflow Configuration Set node.",
+      "mcp_tool": "get_workflow_config",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "fetch_inventory",
+      "type": "source",
+      "description": "Fetch event inventory data. Replaces Fetch Inventory Data HTTP node (mock).",
+      "mcp_tool": "fetch_inventory",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": []
+    }
+  ]
+}

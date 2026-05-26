@@ -1,0 +1,86 @@
+{
+  "workflow": {
+    "name": "Automated QR Ticket Scanner & Validator",
+    "description": "Triggers on new QR scan data, validates ticket codes against a database, and appends results (VALID/TIDAK VALID) to a results sheet. Google Sheets mocked with local JSON.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "tags": [
+      "qr-code",
+      "ticket",
+      "validation",
+      "google-sheets-mock"
+    ]
+  },
+  "configuration": {
+    "mock_mode": true,
+    "environment_variables": {
+      "TICKET_DB_PATH": {
+        "required": false,
+        "description": "Path to ticket database JSON file",
+        "example": "data/tickets.json"
+      },
+      "SCAN_RESULTS_PATH": {
+        "required": false,
+        "description": "Path to scan results JSON file",
+        "example": "data/scan_results.json"
+      },
+      "FORM_RESPONSES_PATH": {
+        "required": false,
+        "description": "Path to form responses JSON file",
+        "example": "data/form_responses.json"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "get_form_responses",
+      "type": "trigger",
+      "description": "Simulate Google Sheets trigger - read all form responses (QR scan submissions).",
+      "mcp_tool": "get_form_responses",
+      "parameters": {
+        "input": {}
+      },
+      "source_nodes": [
+        "Sheets Update Trigger"
+      ],
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "select_latest_item",
+      "type": "transform",
+      "description": "Select the latest (last) item from the triggered data.",
+      "mcp_tool": "select_latest_item",
+      "parameters": {
+        "input": {
+          "items": "{{ step_1.result }}"
+        }
+      },
+      "source_nodes": [
+        "Select Latest Item (Code node)"
+      ],
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "set_ticket_code",
+      "type": "transform",
+      "description": "Extract QR code value as kode_tiket for lookup.",
+      "mcp_tool": "set_ticket_code",
+      "parameters": {
+        "input": {
+          "qr_code": "{{ step_2.result['QR code'] }}"
+        }
+      },
+      "source_nodes": [
+        "Set Ticket Code Field (Set node)"
+      ],
+      "next_steps": []
+    }
+  ]
+}

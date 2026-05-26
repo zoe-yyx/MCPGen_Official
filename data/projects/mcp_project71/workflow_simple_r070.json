@@ -1,0 +1,204 @@
+{
+  "workflow": {
+    "name": "Instant Ad Banner Generator",
+    "description": "Generates professional marketing banners from a LINE message: GPT optimizes a Japanese marketing prompt, submits to AI image generation (Nano Banana Pro / kie.ai), polls for completion, uploads to S3, and delivers the image via LINE reply.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "LINE",
+      "AI",
+      "image-generation",
+      "marketing",
+      "S3",
+      "GPT",
+      "banner"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "API key for OpenAI GPT used to optimize marketing prompts",
+        "validation_pattern": "^sk-.*$",
+        "example": "REDACTED_API_KEY"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API endpoint",
+        "validation_pattern": "^https?://.+$",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": false,
+        "description": "LLM model name for prompt optimization",
+        "validation_pattern": "^[\\w\\-\\.]+$",
+        "example": "gpt-5.1"
+      },
+      "LINE_CHANNEL_ACCESS_TOKEN": {
+        "required": false,
+        "description": "LINE channel access token for sending messages (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "your-line-token"
+      },
+      "AWS_S3_BUCKET": {
+        "required": false,
+        "description": "S3 bucket name for hosting generated banners (mocked)",
+        "validation_pattern": "^[a-z0-9\\-]+$",
+        "example": "banners-bot-v7158"
+      },
+      "AWS_REGION": {
+        "required": false,
+        "description": "AWS region for S3 bucket",
+        "validation_pattern": "^[a-z0-9\\-]+$",
+        "example": "ap-northeast-1"
+      },
+      "KIE_API_KEY": {
+        "required": false,
+        "description": "kie.ai API key for Nano Banana Pro image generation (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "your-kie-api-key"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "LINE Webhook",
+      "type": "trigger",
+      "description": "Receive a text message from LINE user containing product/campaign details in Japanese",
+      "mcp_tool": "receive_line_webhook",
+      "parameters": {
+        "input": {
+          "message": "商品名: プレミアムコーヒー / ターゲット: 30代ビジネスマン / キャッチコピー: 朝の一杯が、仕事を変える。",
+          "user_id": "U1234567890abcdef"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "Extract Line Data",
+      "type": "processing",
+      "description": "Parse LINE webhook body to extract replyToken, userId, and message text",
+      "mcp_tool": "extract_line_data",
+      "parameters": {
+        "input": {
+          "webhook_json": "{{ step1.data }}"
+        }
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "Optimize Prompt (Marketing)",
+      "type": "ai_processing",
+      "description": "Use GPT to create a detailed English image generation prompt optimized for Japanese marketing",
+      "mcp_tool": "optimize_prompt",
+      "parameters": {
+        "input": {
+          "message": "{{ step2.data.message }}"
+        }
+      },
+      "next_steps": [
+        "4"
+      ]
+    },
+    {
+      "step_id": "4",
+      "name": "Extract Prompt Text",
+      "type": "processing",
+      "description": "Parse the GPT/Gemini response and extract the clean prompt string",
+      "mcp_tool": "extract_prompt_text",
+      "parameters": {
+        "input": {
+          "response_json": "{{ step3.data }}",
+          "user_id": "{{ step2.data.user_id }}"
+        }
+      },
+      "next_steps": [
+        "5"
+      ]
+    },
+    {
+      "step_id": "5",
+      "name": "Submit to Nano Banana Pro",
+      "type": "processing",
+      "description": "Submit image generation task to kie.ai Nano Banana Pro (1:1, 2K, PNG)",
+      "mcp_tool": "submit_image_generation",
+      "parameters": {
+        "input": {
+          "prompt": "{{ step4.data.prompt }}"
+        }
+      },
+      "next_steps": [
+        "6"
+      ]
+    },
+    {
+      "step_id": "6",
+      "name": "Wait for Processing",
+      "type": "processing",
+      "description": "Wait 10 seconds for the image generation job to start processing",
+      "mcp_tool": "wait_for_processing",
+      "parameters": {
+        "input": {
+          "seconds": 10
+        }
+      },
+      "next_steps": [
+        "7"
+      ]
+    },
+    {
+      "step_id": "7",
+      "name": "Check Job Status",
+      "type": "processing",
+      "description": "Poll kie.ai recordInfo endpoint to check whether the generation job has completed",
+      "mcp_tool": "check_job_status",
+      "parameters": {
+        "input": {
+          "task_id": "{{ step5.data.data.taskId }}",
+          "record_id": "{{ step5.data.data.recordId }}"
+        }
+      },
+      "next_steps": [
+        "8"
+      ]
+    },
+    {
+      "step_id": "8",
+      "name": "Wait for Generation",
+      "type": "processing",
+      "description": "Wait another 10 seconds before parsing the final result",
+      "mcp_tool": "wait_for_generation",
+      "parameters": {
+        "input": {
+          "seconds": 10
+        }
+      },
+      "next_steps": [
+        "9"
+      ]
+    },
+    {
+      "step_id": "9",
+      "name": "Parse Result",
+      "type": "routing",
+      "description": "Extract image URL from job status response; returns status='processing' if not ready yet",
+      "mcp_tool": "parse_result",
+      "parameters": {
+        "input": {
+          "status_response_json": "{{ step7.data }}"
+        }
+      },
+      "next_steps": [
+        "7"
+      ]
+    }
+  ]
+}

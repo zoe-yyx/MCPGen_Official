@@ -1,0 +1,24 @@
+{
+  "bookingId": "BK-20260420-001",
+  "customerEmail": "EMAIL_PLACEHOLDER",
+  "customerName": "Alice Johnson",
+  "eventName": "Summer Music Festival 2026",
+  "eventDate": "2026-07-15T19:00:00Z",
+  "ticketTier": "VIP",
+  "ticketQuantity": 2,
+  "seatPreference": "A12,A13",
+  "totalAmount": 450.00,
+  "currency": "USD",
+  "paymentMethod": "CREDIT_CARD",
+  "paymentToken": "tok_visa_4242",
+  "ipAddress": "192.168.1.100",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+  "captchaToken": "valid_captcha_token_abc123",
+  "consentFlags": {
+    "termsAccepted": true,
+    "privacyPolicyAccepted": true,
+    "marketingOptIn": false
+  },
+  "loyaltyMemberId": "LM-9876",
+  "specialRequests": "Wheelchair accessible seating nearby"
+}

@@ -1,0 +1,224 @@
+{
+  "workflow": {
+    "name": "AI Image to Professional Video Workflow",
+    "description": "Converts a single image into a professional multi-shot video using NanoBanana Ultra (contact sheet) and Kling AI (video generation), then publishes via Blotato.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": ["image-generation", "video-generation", "fashion", "nanobanana", "kling", "blotato"]
+  },
+  "configuration": {
+    "mock_mode": true,
+    "environment_variables": {
+      "ATLASCLOUD_API_KEY": {
+        "required": false,
+        "description": "AtlasCloud API key for NanoBanana ULTRA and Kling AI (mocked)"
+      },
+      "FAL_API_KEY": {
+        "required": false,
+        "description": "Fal.ai API key for FFmpeg video merge (mocked)"
+      },
+      "BLOTATO_API_KEY": {
+        "required": false,
+        "description": "Blotato API key for social media publishing (mocked)"
+      },
+      "IMAGE_CSV_PATH": {
+        "required": false,
+        "description": "Path to the image records CSV",
+        "example": "data/images.csv"
+      },
+      "SOURCE_IMAGE_DIR": {
+        "required": false,
+        "description": "Directory containing source images",
+        "example": "data/source_images"
+      },
+      "OUTPUT_DIR": {
+        "required": false,
+        "description": "Directory for output files",
+        "example": "results/outputs"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "phase": "contact_sheet",
+      "name": "Read image records",
+      "type": "data_retrieval",
+      "description": "Read image records from CSV where status = nanobanana_done (mock Google Sheets)",
+      "mcp_tool": "get_image_records",
+      "parameters": {"status_filter": "nanobanana_done"},
+      "next_steps": ["2"]
+    },
+    {
+      "step_id": "2",
+      "phase": "contact_sheet",
+      "name": "Download source image",
+      "type": "file_operation",
+      "description": "Download source image from local storage (mock Google Drive)",
+      "mcp_tool": "download_source_image",
+      "parameters": {"image_filename": "<from step_1>"},
+      "next_steps": ["3"]
+    },
+    {
+      "step_id": "3",
+      "phase": "contact_sheet",
+      "name": "Upload image for public URL",
+      "type": "file_operation",
+      "description": "Upload image to get a public URL (mock tmpfiles.org)",
+      "mcp_tool": "upload_image_public",
+      "parameters": {"image_path": "<from step_2>"},
+      "next_steps": ["4"]
+    },
+    {
+      "step_id": "4",
+      "phase": "contact_sheet",
+      "name": "Build contact-sheet prompt",
+      "type": "prompt_generation",
+      "description": "Return the hardcoded fashion photography contact-sheet prompt",
+      "mcp_tool": "build_contact_sheet_prompt",
+      "parameters": {},
+      "next_steps": ["5"]
+    },
+    {
+      "step_id": "5",
+      "phase": "contact_sheet",
+      "name": "Generate contact sheet",
+      "type": "ai_generation",
+      "description": "Generate 2x3 contact sheet with 6 camera angles (mock NanoBanana ULTRA)",
+      "mcp_tool": "generate_contact_sheet",
+      "parameters": {"source_image_path": "<from step_2>"},
+      "next_steps": ["6"]
+    },
+    {
+      "step_id": "6",
+      "phase": "contact_sheet",
+      "name": "Poll generation result",
+      "type": "polling",
+      "description": "Poll AtlasCloud prediction endpoint for contact sheet result",
+      "mcp_tool": "poll_generation_result",
+      "parameters": {"prediction_id": "<from step_5>"},
+      "next_steps": ["7"]
+    },
+    {
+      "step_id": "7",
+      "phase": "contact_sheet",
+      "name": "Save to Drive",
+      "type": "file_operation",
+      "description": "Upload contact sheet to Google Drive (mock)",
+      "mcp_tool": "save_to_drive",
+      "parameters": {"image_path": "<from step_5>", "drive_filename": "contact_sheet.png"},
+      "next_steps": ["8"]
+    },
+    {
+      "step_id": "8",
+      "phase": "contact_sheet",
+      "name": "Update record (contact_done)",
+      "type": "data_update",
+      "description": "Update CSV record status to contact_done",
+      "mcp_tool": "update_record",
+      "parameters": {"match_field": "id", "match_value": "<record_id>"},
+      "next_steps": ["9"]
+    },
+    {
+      "step_id": "9",
+      "phase": "video_creation",
+      "name": "Read contact_done records",
+      "type": "data_retrieval",
+      "description": "Read records with status = contact_done for video generation",
+      "mcp_tool": "get_image_records",
+      "parameters": {"status_filter": "contact_done"},
+      "next_steps": ["10"]
+    },
+    {
+      "step_id": "10",
+      "phase": "video_creation",
+      "name": "Get image dimensions",
+      "type": "image_processing",
+      "description": "Get contact sheet width/height to calculate crop regions",
+      "mcp_tool": "get_image_info",
+      "parameters": {"image_path": "<contact_sheet_path>"},
+      "next_steps": ["11"]
+    },
+    {
+      "step_id": "11",
+      "phase": "video_creation",
+      "name": "Crop into frames",
+      "type": "image_processing",
+      "description": "Crop contact sheet into 4 individual frames (TL, TC, TR, BL)",
+      "mcp_tool": "crop_image",
+      "parameters": {"image_path": "<contact_sheet>", "x": 0, "y": 0, "width": "<cell_w>", "height": "<cell_h>"},
+      "next_steps": ["12"]
+    },
+    {
+      "step_id": "12",
+      "phase": "video_creation",
+      "name": "Upload cropped frames",
+      "type": "file_operation",
+      "description": "Upload 4 cropped frames to get public URLs (mock tmpfiles)",
+      "mcp_tool": "upload_image_public",
+      "parameters": {"image_path": "<crop_paths>"},
+      "next_steps": ["13"]
+    },
+    {
+      "step_id": "13",
+      "phase": "video_creation",
+      "name": "Generate 3 video clips",
+      "type": "ai_generation",
+      "description": "Generate 3 video clips using Kling start-end frame model (mock)",
+      "mcp_tool": "generate_video_clip",
+      "parameters": {"start_image_path": "<frame_N>", "end_image_path": "<frame_N+1>", "clip_index": "<1-3>"},
+      "next_steps": ["14"]
+    },
+    {
+      "step_id": "14",
+      "phase": "video_creation",
+      "name": "Poll video results",
+      "type": "polling",
+      "description": "Poll Kling video generation results for all 3 clips",
+      "mcp_tool": "poll_video_result",
+      "parameters": {"prediction_id": "<from step_13>"},
+      "next_steps": ["15"]
+    },
+    {
+      "step_id": "15",
+      "phase": "video_creation",
+      "name": "Merge 3 videos",
+      "type": "video_processing",
+      "description": "Merge 3 video clips into one final MP4 (mock FFmpeg via fal.ai)",
+      "mcp_tool": "merge_videos",
+      "parameters": {"video_urls_json": "<list of 3 video URLs>"},
+      "next_steps": ["16"]
+    },
+    {
+      "step_id": "16",
+      "phase": "video_creation",
+      "name": "Update record (video_done)",
+      "type": "data_update",
+      "description": "Update CSV record status to video_done with final video URL",
+      "mcp_tool": "update_record",
+      "parameters": {"match_field": "id", "match_value": "<record_id>"},
+      "next_steps": ["17"]
+    },
+    {
+      "step_id": "17",
+      "phase": "publishing",
+      "name": "Upload media",
+      "type": "publishing",
+      "description": "Upload final video to Blotato for social media distribution (mock)",
+      "mcp_tool": "upload_media",
+      "parameters": {"video_url": "<final_video_url>"},
+      "next_steps": ["18"]
+    },
+    {
+      "step_id": "18",
+      "phase": "publishing",
+      "name": "Create social post",
+      "type": "publishing",
+      "description": "Create a YouTube post via Blotato with the uploaded video (mock)",
+      "mcp_tool": "create_social_post",
+      "parameters": {"platform": "youtube", "media_url": "<from step_17>", "title": "...", "description": "..."},
+      "next_steps": []
+    }
+  ]
+}

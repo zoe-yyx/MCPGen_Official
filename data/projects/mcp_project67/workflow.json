@@ -1,0 +1,298 @@
+{
+  "workflow": {
+    "name": "AI-Powered Recruitment Pipeline: CV Screening to Interview Scheduler",
+    "description": "Automates candidate evaluation from CV submission to interview booking. Webhook receives CVs, stores in Airtable, AI extracts and assesses qualifications, filters candidates, generates personalized emails, schedules interviews, and notifies via Slack.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "recruitment",
+      "AI",
+      "CV-screening",
+      "interview",
+      "airtable",
+      "google-calendar",
+      "slack"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "API key for OpenAI GPT-5.1 used in CV extraction, assessment, and email generation",
+        "validation_pattern": "^sk-.*$",
+        "example": "REDACTED_API_KEY"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API endpoint",
+        "validation_pattern": "^https?://.+$",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": false,
+        "description": "LLM model name for AI processing",
+        "validation_pattern": "^[\\w\\-\\.]+$",
+        "example": "gpt-5.1"
+      },
+      "AIRTABLE_BASE_ID": {
+        "required": false,
+        "description": "Airtable base ID (mocked in this project)",
+        "validation_pattern": "^app.+$",
+        "example": "appXXXXXXXXXXXXXX"
+      },
+      "GOOGLE_CALENDAR_ID": {
+        "required": false,
+        "description": "Google Calendar ID for scheduling (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "primary"
+      },
+      "EMAIL_FROM": {
+        "required": false,
+        "description": "Sender email address for candidate outreach (mocked)",
+        "validation_pattern": "^.+@.+$",
+        "example": "EMAIL_PLACEHOLDER"
+      },
+      "SLACK_CHANNEL_ID": {
+        "required": false,
+        "description": "Slack channel ID for recruitment notifications (mocked)",
+        "validation_pattern": "^C.+$",
+        "example": "C0123456789"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "Webhook - Receive CV",
+      "type": "trigger",
+      "description": "Receive candidate CV submission via webhook POST with name, email, phone, cv_url, position",
+      "mcp_tool": "receive_cv",
+      "parameters": {
+        "input": {
+          "name": "candidate name",
+          "email": "candidate email",
+          "phone": "candidate phone",
+          "cv_url": "URL to CV",
+          "position": "position applied for"
+        }
+      },
+      "next_steps": ["2", "4"]
+    },
+    {
+      "step_id": "2",
+      "name": "Airtable - Store Candidate",
+      "type": "processing",
+      "description": "Store candidate record in Airtable with initial 'New Application' status",
+      "mcp_tool": "store_candidate",
+      "parameters": {
+        "input": {
+          "name": "{{ step1.data.body.name }}",
+          "email": "{{ step1.data.body.email }}",
+          "phone": "{{ step1.data.body.phone }}",
+          "cv_url": "{{ step1.data.body.cv_url }}",
+          "position": "{{ step1.data.body.position }}"
+        }
+      },
+      "next_steps": ["3"]
+    },
+    {
+      "step_id": "3",
+      "name": "Airtable - Get Job Requirements",
+      "type": "processing",
+      "description": "Fetch job requirements from Airtable matching the applied position",
+      "mcp_tool": "get_job_requirements",
+      "parameters": {
+        "input": {
+          "position": "{{ step1.data.body.position }}"
+        }
+      },
+      "next_steps": ["6"]
+    },
+    {
+      "step_id": "4",
+      "name": "HTTP Request - Download CV",
+      "type": "processing",
+      "description": "Download CV content from the provided URL",
+      "mcp_tool": "download_cv",
+      "parameters": {
+        "input": {
+          "cv_url": "{{ step1.data.body.cv_url }}"
+        }
+      },
+      "next_steps": ["5"]
+    },
+    {
+      "step_id": "5",
+      "name": "AI - Extract CV Data",
+      "type": "ai_processing",
+      "description": "Use GPT to extract structured data (skills, education, experience) from CV text",
+      "mcp_tool": "extract_cv_data",
+      "parameters": {
+        "input": {
+          "cv_text": "{{ step4.data.text }}"
+        }
+      },
+      "next_steps": ["6"]
+    },
+    {
+      "step_id": "6",
+      "name": "AI Agent - Qualification Assessment",
+      "type": "ai_processing",
+      "description": "AI assesses candidate qualification with match score, status, strengths, gaps, and recommendation",
+      "mcp_tool": "assess_qualification",
+      "parameters": {
+        "input": {
+          "cv_data": "{{ step5.data }}",
+          "job_requirements": "{{ step3.data }}"
+        }
+      },
+      "next_steps": ["7"]
+    },
+    {
+      "step_id": "7",
+      "name": "Airtable - Update Assessment",
+      "type": "processing",
+      "description": "Update candidate Airtable record with AI assessment results",
+      "mcp_tool": "update_assessment",
+      "parameters": {
+        "input": {
+          "candidate_id": "{{ step2.data.id }}",
+          "match_score": "{{ step6.data.match_score }}",
+          "status": "{{ step6.data.status }}",
+          "recommendation": "{{ step6.data.recommendation }}",
+          "strengths": "{{ step6.data.strengths }}",
+          "gaps": "{{ step6.data.gaps }}",
+          "reasoning": "{{ step6.data.reasoning }}"
+        }
+      },
+      "next_steps": ["8", "13"]
+    },
+    {
+      "step_id": "8",
+      "name": "Filter - Qualified Candidates",
+      "type": "routing",
+      "description": "Pass only candidates whose recommendation is not 'Reject'",
+      "mcp_tool": "filter_qualified",
+      "parameters": {
+        "input": {
+          "assessment_data": "{{ step6.data }}"
+        }
+      },
+      "next_steps": ["9"]
+    },
+    {
+      "step_id": "9",
+      "name": "AI Agent - Generate Email",
+      "type": "ai_processing",
+      "description": "Generate personalized recruitment email for qualified candidates",
+      "mcp_tool": "generate_recruitment_email",
+      "parameters": {
+        "input": {
+          "candidate_name": "{{ step2.data.Name }}",
+          "position": "{{ step1.data.body.position }}",
+          "match_score": "{{ step6.data.match_score }}",
+          "recommendation": "{{ step6.data.recommendation }}",
+          "strengths": "{{ step6.data.strengths }}"
+        }
+      },
+      "next_steps": ["10"]
+    },
+    {
+      "step_id": "10",
+      "name": "Send Email - Candidate Outreach",
+      "type": "output",
+      "description": "Send the personalized recruitment email to the candidate",
+      "mcp_tool": "send_candidate_email",
+      "parameters": {
+        "input": {
+          "to_email": "{{ step2.data.Email }}",
+          "from_email": "{{ env.EMAIL_FROM }}",
+          "subject": "{{ step9.data.subject }}",
+          "body": "{{ step9.data.body }}"
+        }
+      },
+      "next_steps": ["11"]
+    },
+    {
+      "step_id": "11",
+      "name": "Filter - Interview Candidates",
+      "type": "routing",
+      "description": "Pass only candidates recommended for formal interview (not phone screen)",
+      "mcp_tool": "filter_interview",
+      "parameters": {
+        "input": {
+          "assessment_data": "{{ step6.data }}"
+        }
+      },
+      "next_steps": ["12"]
+    },
+    {
+      "step_id": "12",
+      "name": "Google Calendar - Schedule Interview",
+      "type": "processing",
+      "description": "Create a Google Calendar event for the interview, 3 days from now",
+      "mcp_tool": "schedule_interview",
+      "parameters": {
+        "input": {
+          "candidate_name": "{{ step2.data.Name }}",
+          "position": "{{ step1.data.body.position }}",
+          "days_from_now": 3
+        }
+      },
+      "next_steps": ["14"]
+    },
+    {
+      "step_id": "13",
+      "name": "Slack - Send Notification",
+      "type": "output",
+      "description": "Send Slack notification to #recruitment channel about candidate processing results",
+      "mcp_tool": "send_slack_notification",
+      "parameters": {
+        "input": {
+          "candidate_name": "{{ step2.data.Name }}",
+          "position": "{{ step1.data.body.position }}",
+          "match_score": "{{ step6.data.match_score }}",
+          "status": "{{ step6.data.status }}",
+          "recommendation": "{{ step6.data.recommendation }}",
+          "strengths": "{{ step6.data.strengths }}",
+          "candidate_id": "{{ step2.data.id }}"
+        }
+      },
+      "next_steps": ["15"]
+    },
+    {
+      "step_id": "14",
+      "name": "Airtable - Update Interview Details",
+      "type": "processing",
+      "description": "Update candidate record with interview scheduling details",
+      "mcp_tool": "update_interview_details",
+      "parameters": {
+        "input": {
+          "candidate_id": "{{ step2.data.id }}",
+          "interview_scheduled": "{{ step12.data.start.dateTime }}",
+          "interview_link": "{{ step12.data.hangoutLink }}",
+          "calendar_event_id": "{{ step12.data.id }}"
+        }
+      },
+      "next_steps": ["15"]
+    },
+    {
+      "step_id": "15",
+      "name": "Respond to Webhook",
+      "type": "output",
+      "description": "Return final response with candidate processing summary",
+      "mcp_tool": "respond_webhook",
+      "parameters": {
+        "input": {
+          "candidate_id": "{{ step2.data.id }}",
+          "candidate_name": "{{ step2.data.Name }}",
+          "match_score": "{{ step6.data.match_score }}",
+          "status": "{{ step6.data.status }}",
+          "recommendation": "{{ step6.data.recommendation }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+[project]
+name = "mcp-project68"
+version = "0.1.0"
+description = "Employee Leave Alert System - MCP conversion of n8n workflow"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.11.3",
+    "python-dotenv>=1.0.0",
+    "loguru>=0.7.0",
+    "mcp[cli]>=1.13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["mcp_server"]

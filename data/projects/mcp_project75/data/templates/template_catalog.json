@@ -1,0 +1,12 @@
+[
+  {
+    "id": "tpl_001",
+    "name": "SATIŞ SÖZLEŞMESİ",
+    "description": "Product/goods sales contract between seller and buyer"
+  },
+  {
+    "id": "tpl_002",
+    "name": "KİRA SÖZLEŞMESİ",
+    "description": "Residential or commercial property rental agreement"
+  }
+]

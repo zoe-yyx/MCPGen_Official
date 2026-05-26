@@ -1,0 +1,182 @@
+[
+  {
+    "EventId": "64181",
+    "Closed": "true",
+    "Processed": true,
+    "MarketId": "647244",
+    "EndTime": "2025-10-25T21:00:00Z",
+    "TokenUp": "91322643955414287477964879073393661489749313057450713930205018847358372202875",
+    "TokenDw": "26357103245433969797368364385735814185699714805260498450538345342064275663748"
+  },
+  {
+    "EventId": "65417",
+    "Closed": "true",
+    "Processed": true,
+    "MarketId": "650073",
+    "EndTime": "2025-10-28T04:00:00Z",
+    "TokenUp": "47950972757905870309734587229556706255863317021808190540130748393723272295258",
+    "TokenDw": "25325251769759506695988095216766781232803638683605763080382441476666272347220"
+  },
+  {
+    "EventId": "63808",
+    "Closed": "true",
+    "Processed": true,
+    "MarketId": "646093",
+    "EndTime": "2025-10-25T03:00:00Z",
+    "TokenUp": "8594752794422232266775500373372723864535305626487338205488018263062422914415",
+    "TokenDw": "82174085313593062941914575333172974911801490298620379147322371145781366395143"
+  },
+  {
+    "EventId": "63944",
+    "Closed": "true",
+    "Processed": true,
+    "MarketId": "646286",
+    "EndTime": "2025-10-25T13:00:00Z",
+    "TokenUp": "107775790619122317787397231741450264050774349160014077425845547646397341325688",
+    "TokenDw": "53911102516202179409429273768646653426016421969120576935665903774425178984429"
+  },
+  {
+    "EventId": "66046",
+    "Closed": "true",
+    "Processed": true,
+    "MarketId": "651276",
+    "EndTime": "2025-10-29T11:00:00Z",
+    "TokenUp": "23510420712478480320065432115277995903689463655713804794096510504192161899404",
+    "TokenDw": "84959737258568101709456078615156720822248571054457312253481921746541566816005"
+  },
+  {
+    "EventId": "65335",
+    "Closed": "true",
+    "Processed": true,
+    "MarketId": "649941",
+    "EndTime": "2025-10-27T23:00:00Z",
+    "TokenUp": "84230837061030527366285412220711937193051963769245459084602042935449901482103",
+    "TokenDw": "31756190916665327050174011849969922573706607867462329223139287925047972079230"
+  },
+  {
+    "EventId": "65848",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "64735",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "65530",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "65775",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "66332",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "65265",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "64923",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "65909",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "66869",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "63820",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "64435",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "64537",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "65120",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  },
+  {
+    "EventId": "66771",
+    "Closed": "true",
+    "Processed": false,
+    "MarketId": "",
+    "EndTime": "",
+    "TokenUp": "",
+    "TokenDw": ""
+  }
+]

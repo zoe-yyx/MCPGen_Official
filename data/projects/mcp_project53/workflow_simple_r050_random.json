@@ -1,0 +1,139 @@
+{
+  "workflow": {
+    "name": "Legal & Compliance Document Archiving",
+    "description": "Automates HR contract archiving: validate → duplicate-check → CDN upload → local Drive storage → record upsert → email notification → audit response.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "hr",
+      "contracts",
+      "compliance",
+      "archiving",
+      "document-management"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "HR_EMAIL": {
+        "required": false,
+        "description": "HR manager's email address for confirmation notifications",
+        "example": "EMAIL_PLACEHOLDER"
+      },
+      "SMTP_HOST": {
+        "required": false,
+        "description": "SMTP server hostname for sending emails",
+        "example": "smtp.gmail.com"
+      },
+      "SMTP_PORT": {
+        "required": false,
+        "description": "SMTP server port",
+        "example": "587"
+      },
+      "SMTP_USER": {
+        "required": false,
+        "description": "SMTP login username (usually the sender email)",
+        "example": "EMAIL_PLACEHOLDER"
+      },
+      "SMTP_PASSWORD": {
+        "required": false,
+        "description": "SMTP login password or app-specific password",
+        "example": "your_smtp_password"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "validate_and_enrich",
+      "type": "processing",
+      "description": "Sanitise and normalise all inputs. Generate structured filename and Drive folder path.",
+      "mcp_tool": "tool_validate_and_enrich",
+      "parameters": {
+        "input": {
+          "employee_name": "Sarah Johnson",
+          "filename": "contract-signed.pdf",
+          "employee_id": "EMP-0042",
+          "employee_email": "EMAIL_PLACEHOLDER",
+          "contract_type": "Full-Time Employment",
+          "department": "Engineering",
+          "effective_date": "2025-03-01",
+          "notify_employee": true,
+          "filed_by": "HR System"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "check_duplicate",
+      "type": "processing",
+      "description": "Search for an existing filed contract for this employee. Halt with 409 if found.",
+      "mcp_tool": "tool_check_duplicate",
+      "parameters": {
+        "input": {
+          "employee_id": "{{ step_1.employeeId }}"
+        }
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "upload_to_cdn",
+      "type": "processing",
+      "description": "Stage the document in local CDN storage and obtain a stable URL.",
+      "mcp_tool": "tool_upload_to_cdn",
+      "parameters": {
+        "input": {
+          "file_path": "results/outputs/sample_contract.pdf",
+          "structured_filename": "{{ step_1.structuredFilename }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "6",
+      "name": "find_employee_record",
+      "type": "processing",
+      "description": "Look up the employee in the local Airtable-equivalent DB.",
+      "mcp_tool": "tool_find_employee_record",
+      "parameters": {
+        "input": {
+          "employee_id": "{{ step_1.employeeId }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "9",
+      "name": "build_final_response",
+      "type": "output",
+      "description": "Assemble the complete archiving summary for the caller (HTTP 201 equivalent).",
+      "mcp_tool": "tool_build_final_response",
+      "parameters": {
+        "input": {
+          "employee_id": "{{ step_1.employeeId }}",
+          "employee_name": "{{ step_1.employeeName }}",
+          "department": "{{ step_1.department }}",
+          "structured_filename": "{{ step_1.structuredFilename }}",
+          "contract_type": "{{ step_1.contractType }}",
+          "effective_date": "{{ step_1.effectiveDate }}",
+          "drive_file_id": "{{ step_5.driveFileId }}",
+          "drive_url": "{{ step_5.driveUrl }}",
+          "drive_folder_path": "{{ step_1.driveFolderPath }}",
+          "cdn_backup_url": "{{ step_3.cdnUrl }}",
+          "airtable_record_id": "{{ step_7.id }}",
+          "filed_by": "{{ step_1.filedBy }}",
+          "filed_at": "{{ step_1.filedAt }}",
+          "upload_id": "{{ step_3.uploadId }}",
+          "file_size_bytes": "{{ step_3.fileSizeBytes }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

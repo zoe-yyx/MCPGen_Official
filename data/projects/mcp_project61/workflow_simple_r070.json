@@ -1,0 +1,188 @@
+{
+  "workflow": {
+    "name": "Gold vs Equity Performance Comparison Tracker",
+    "description": "Automates financial performance analysis between gold and equity using historical market data. Fetches price data, compares returns, generates AI-driven investment insights, visualizes performance trends, and sends a formatted report via email.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "finance",
+      "gold",
+      "equity",
+      "ai-insights",
+      "report"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "API_KEY": {
+        "required": true,
+        "description": "OpenAI-compatible API key for LLM calls",
+        "example": "sk-xxx"
+      },
+      "BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": true,
+        "description": "Model name for OpenAI-compatible API",
+        "example": "gpt-5.1"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "set_analysis_parameters",
+      "type": "trigger",
+      "description": "Set date range and threshold parameters for the analysis",
+      "mcp_tool": "set_analysis_parameters",
+      "parameters": {
+        "input": {
+          "start_date": "2026-03-01",
+          "end_date": "2026-03-10",
+          "threshold": 5.0
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "fetch_gold_prices",
+      "type": "data_fetch",
+      "description": "Fetch gold price data from mock Google Sheets",
+      "mcp_tool": "fetch_gold_prices",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "fetch_equity_prices",
+      "type": "data_fetch",
+      "description": "Fetch equity price data from mock Google Sheets",
+      "mcp_tool": "fetch_equity_prices",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "4"
+      ]
+    },
+    {
+      "step_id": "4",
+      "name": "merge_market_data",
+      "type": "processing",
+      "description": "Merge gold and equity data, filter by date range, deduplicate",
+      "mcp_tool": "merge_market_data",
+      "parameters": {
+        "input": {
+          "gold_data": "{{ step_2.output }}",
+          "equity_data": "{{ step_3.output }}",
+          "start_date": "{{ step_1.output.startDate }}",
+          "end_date": "{{ step_1.output.endDate }}"
+        }
+      },
+      "next_steps": [
+        "5",
+        "6"
+      ]
+    },
+    {
+      "step_id": "5",
+      "name": "calculate_performance_metrics",
+      "type": "processing",
+      "description": "Calculate gold and equity returns, difference, and winner",
+      "mcp_tool": "calculate_performance_metrics",
+      "parameters": {
+        "input": {
+          "market_data": "{{ step_4.output }}"
+        }
+      },
+      "next_steps": [
+        "7"
+      ]
+    },
+    {
+      "step_id": "6",
+      "name": "generate_chart",
+      "type": "processing",
+      "description": "Generate QuickChart line graph URL for gold vs equity prices",
+      "mcp_tool": "generate_chart",
+      "parameters": {
+        "input": {
+          "market_data": "{{ step_4.output }}"
+        }
+      },
+      "next_steps": [
+        "9"
+      ]
+    },
+    {
+      "step_id": "7",
+      "name": "generate_ai_investment_insights",
+      "type": "ai",
+      "description": "Use LLM (gpt-5.1) to analyze performance and suggest portfolio allocation",
+      "mcp_tool": "generate_ai_investment_insights",
+      "parameters": {
+        "input": {
+          "metrics": "{{ step_5.output }}"
+        }
+      },
+      "next_steps": [
+        "8"
+      ]
+    },
+    {
+      "step_id": "8",
+      "name": "parse_ai_output",
+      "type": "processing",
+      "description": "Parse raw AI JSON output into structured dict",
+      "mcp_tool": "parse_ai_output",
+      "parameters": {
+        "input": {
+          "raw_output": "{{ step_7.output }}"
+        }
+      },
+      "next_steps": [
+        "9"
+      ]
+    },
+    {
+      "step_id": "9",
+      "name": "combine_ai_chart_data",
+      "type": "merge",
+      "description": "Combine parsed AI insights with chart URL data",
+      "mcp_tool": "combine_ai_chart_data",
+      "parameters": {
+        "input": {
+          "ai_data": "{{ step_8.output }}",
+          "chart_data": "{{ step_6.output }}"
+        }
+      },
+      "next_steps": [
+        "10"
+      ]
+    },
+    {
+      "step_id": "10",
+      "name": "generate_final_report",
+      "type": "processing",
+      "description": "Generate styled HTML report from combined data",
+      "mcp_tool": "generate_final_report",
+      "parameters": {
+        "input": {
+          "combined_data": "{{ step_9.output }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "workflow": {
+    "name": "Smart Inventory Replenishment & Auto-Purchase Orders",
+    "description": "Scheduled workflow that checks warehouse stock every 6 hours, fetches sales velocity, merges data, uses GPT AI to forecast demand, filters products needing reorder, creates purchase orders, sends them to suppliers, logs to ERP, saves to database, and sends email notifications.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "inventory",
+      "purchase-orders",
+      "AI",
+      "automation",
+      "ERP",
+      "scheduling"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "OpenAI API key for demand forecasting",
+        "validation_pattern": "^sk-.+$",
+        "example": "sk-..."
+      },
+      "OPENAI_BASE_URL": {
+        "required": false,
+        "description": "Custom OpenAI-compatible base URL",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": false,
+        "description": "Model name for demand forecasting",
+        "example": "gpt-5.1"
+      },
+      "NOTIFICATION_EMAIL": {
+        "required": false,
+        "description": "Email address for PO notifications (mocked)",
+        "example": "EMAIL_PLACEHOLDER"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "Schedule Trigger",
+      "type": "trigger",
+      "description": "Fires every 6 hours to kick off the inventory check cycle",
+      "mcp_tool": "schedule_trigger",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "Fetch Current Inventory",
+      "type": "processing",
+      "description": "Retrieve current stock levels from warehouse system",
+      "mcp_tool": "fetch_inventory",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "3",
+        "4"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "Fetch Sales Velocity",
+      "type": "processing",
+      "description": "Retrieve 30-day sales data from sales API",
+      "mcp_tool": "fetch_sales_velocity",
+      "parameters": {
+        "input": {
+          "days": 30
+        }
+      },
+      "next_steps": [
+        "4"
+      ]
+    },
+    {
+      "step_id": "4",
+      "name": "Merge Inventory & Sales Data",
+      "type": "processing",
+      "description": "Join inventory and sales records by product_id",
+      "mcp_tool": "merge_inventory_and_sales",
+      "parameters": {
+        "input": {
+          "inventory_json": "{{ step2.data }}",
+          "sales_json": "{{ step3.data }}"
+        }
+      },
+      "next_steps": [
+        "5"
+      ]
+    },
+    {
+      "step_id": "5",
+      "name": "AI Demand Forecasting",
+      "type": "processing",
+      "description": "GPT-5.1 analyzes each product and forecasts whether reorder is needed",
+      "mcp_tool": "ai_demand_forecasting",
+      "parameters": {
+        "input": {
+          "product_data_json": "{{ step4.item }}"
+        }
+      },
+      "next_steps": [
+        "6"
+      ]
+    },
+    {
+      "step_id": "6",
+      "name": "Parse AI Response",
+      "type": "processing",
+      "description": "Extract structured forecast from AI response and merge with product data",
+      "mcp_tool": "parse_ai_response",
+      "parameters": {
+        "input": {
+          "ai_response_json": "{{ step5.data }}",
+          "original_item_json": "{{ step4.item }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "workflow": {
+    "name": "Smart Trade Alert Dispatcher for Slack & Telegram",
+    "description": "Monitors AAPL stock using RSI and price data, generates AI market summaries, and routes alerts by priority to Telegram (HIGH) or Slack (LOW/MEDIUM).",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "trading",
+      "stock",
+      "RSI",
+      "alerts",
+      "AI",
+      "slack",
+      "telegram"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "API key for OpenAI (GPT-5.1) to generate market summaries",
+        "validation_pattern": "^sk-.*$",
+        "example": "REDACTED_API_KEY"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API endpoint",
+        "validation_pattern": "^https?://.+$",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": false,
+        "description": "LLM model name to use for AI summary generation",
+        "validation_pattern": "^[\\w\\-\\.]+$",
+        "example": "gpt-5.1"
+      },
+      "TWELVEDATA_API_KEY": {
+        "required": false,
+        "description": "API key for TwelveData (mocked in this project)",
+        "validation_pattern": "^.+$",
+        "example": "your-twelvedata-api-key"
+      },
+      "TELEGRAM_BOT_TOKEN": {
+        "required": false,
+        "description": "Telegram bot token (mocked in this project)",
+        "validation_pattern": "^.+$",
+        "example": "your-telegram-bot-token"
+      },
+      "TELEGRAM_CHAT_ID": {
+        "required": false,
+        "description": "Telegram chat ID for sending alerts (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "your-chat-id"
+      },
+      "SLACK_CHANNEL_ID": {
+        "required": false,
+        "description": "Slack channel ID for sending alerts (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "trading-alerts"
+      },
+      "GMAIL_RECIPIENT": {
+        "required": false,
+        "description": "Email address for error alert notifications (mocked)",
+        "validation_pattern": "^.+@.+\\..+$",
+        "example": "EMAIL_PLACEHOLDER"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "Fetch RSI Indicator",
+      "type": "data_collection",
+      "description": "Fetch RSI (14-period, 5min intervals) indicator data from TwelveData API for momentum analysis",
+      "mcp_tool": "fetch_rsi",
+      "parameters": {
+        "input": {
+          "symbol": "AAPL",
+          "interval": "5min",
+          "time_period": 14
+        }
+      },
+      "next_steps": ["3"]
+    },
+    {
+      "step_id": "2",
+      "name": "Fetch Price & Volume Data",
+      "type": "data_collection",
+      "description": "Fetch real-time price quote and volume metrics from TwelveData API",
+      "mcp_tool": "fetch_price_volume",
+      "parameters": {
+        "input": {
+          "symbol": "AAPL"
+        }
+      },
+      "next_steps": ["3"]
+    },
+    {
+      "step_id": "3",
+      "name": "Merge API Responses",
+      "type": "processing",
+      "description": "Merge RSI and price/volume API responses into a single data stream for signal processing",
+      "mcp_tool": "merge_api_responses",
+      "parameters": {
+        "input": {
+          "rsi_data": "{{ step1.data }}",
+          "price_data": "{{ step2.data }}"
+        }
+      },
+      "next_steps": ["4"]
+    },
+    {
+      "step_id": "4",
+      "name": "Calculate Trading Signals",
+      "type": "processing",
+      "description": "Classify momentum (oversold/overbought), compare volume vs average, and determine action (PREPARE_BUY, WATCH, WAIT)",
+      "mcp_tool": "calculate_trading_signals",
+      "parameters": {
+        "input": {
+          "merged_data": "{{ step3.data }}"
+        }
+      },
+      "next_steps": ["5"]
+    },
+    {
+      "step_id": "5",
+      "name": "Generate AI Summary",
+      "type": "ai_processing",
+      "description": "Use GPT to transform raw trading signals into a professional Slack-ready market update summary",
+      "mcp_tool": "generate_ai_summary",
+      "parameters": {
+        "input": {
+          "signal_data": "{{ step4.data }}"
+        }
+      },
+      "next_steps": ["6"]
+    },
+    {
+      "step_id": "6",
+      "name": "Assign Alert Priority",
+      "type": "processing",
+      "description": "Calculate alert priority: HIGH (RSI<30 + high volume), MEDIUM (RSI<40 or high volume), LOW (otherwise)",
+      "mcp_tool": "assign_alert_priority",
+      "parameters": {
+        "input": {
+          "signal_data": "{{ step5.data }}"
+        }
+      },
+      "next_steps": ["7"]
+    },
+    {
+      "step_id": "7",
+      "name": "Route by Priority",
+      "type": "routing",
+      "description": "Route alert to Telegram (HIGH priority) or Slack (MEDIUM/LOW priority) based on priority level",
+      "mcp_tool": "route_by_priority",
+      "parameters": {
+        "input": {
+          "prioritized_data": "{{ step6.data }}"
+        }
+      },
+      "next_steps": ["8", "9"]
+    },
+    {
+      "step_id": "8",
+      "name": "Send to Telegram (High Priority)",
+      "type": "output",
+      "description": "Send high-priority trade alert to Telegram with priority badge and action recommendation",
+      "mcp_tool": "send_telegram",
+      "condition": "route == 'telegram'",
+      "parameters": {
+        "input": {
+          "alert_data": "{{ step7.data }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "9",
+      "name": "Send to Slack (Low Priority)",
+      "type": "output",
+      "description": "Send low/medium priority market update to Slack channel for routine monitoring",
+      "mcp_tool": "send_slack",
+      "condition": "route == 'slack'",
+      "parameters": {
+        "input": {
+          "alert_data": "{{ step7.data }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "workflow": {
+    "name": "AI Hotel Receptionist via WhatsApp",
+    "description": "WhatsApp-based AI hotel receptionist: validates incoming messages, uses Redis to load-balance GPT model selection, runs a GPT agent with SQL (MySQL) and pricing (Google Sheets) tools, and replies to guests via WhatsApp.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "WhatsApp",
+      "AI",
+      "hotel",
+      "MySQL",
+      "Redis",
+      "GPT",
+      "agent",
+      "customer-service"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "API key for OpenAI GPT used as the hotel AI agent",
+        "validation_pattern": "^sk-.*$",
+        "example": "REDACTED_API_KEY"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API endpoint",
+        "validation_pattern": "^https?://.+$",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": false,
+        "description": "LLM model name for the hotel agent",
+        "validation_pattern": "^[\\w\\-\\.]+$",
+        "example": "gpt-5.1"
+      },
+      "WHATSAPP_PHONE_NUMBER_ID": {
+        "required": false,
+        "description": "WhatsApp Business phone number ID (mocked)",
+        "validation_pattern": "^\\d+$",
+        "example": "723548604171403"
+      },
+      "WHATSAPP_ACCESS_TOKEN": {
+        "required": false,
+        "description": "WhatsApp Business API access token (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "your-whatsapp-token"
+      },
+      "REDIS_URL": {
+        "required": false,
+        "description": "Redis connection URL for model assignment (mocked in-memory)",
+        "validation_pattern": "^redis://.+$",
+        "example": "redis://localhost:6379"
+      },
+      "MYSQL_HOST": {
+        "required": false,
+        "description": "MySQL host for hotel database (mocked with SQLite in-memory)",
+        "validation_pattern": "^.+$",
+        "example": "localhost"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "WhatsApp Trigger",
+      "type": "trigger",
+      "description": "Receive a WhatsApp message from a hotel guest",
+      "mcp_tool": "receive_whatsapp_message",
+      "parameters": {
+        "input": {
+          "message": "What rooms are currently available?",
+          "wa_id": "601234567890",
+          "phone_number": "601234567890"
+        }
+      },
+      "next_steps": ["2"]
+    },
+    {
+      "step_id": "2",
+      "name": "Check Message",
+      "type": "routing",
+      "description": "Validate the webhook event is a text message; exit early if not",
+      "mcp_tool": "check_message",
+      "parameters": {
+        "input": {
+          "webhook_json": "{{ step1.data }}"
+        }
+      },
+      "next_steps": ["3"]
+    },
+    {
+      "step_id": "3",
+      "name": "Check User Number",
+      "type": "processing",
+      "description": "Redis GET: look up which model index was last assigned to this WhatsApp user",
+      "mcp_tool": "check_user_model",
+      "parameters": {
+        "input": {
+          "wa_id": "{{ step2.data.wa_id }}"
+        }
+      },
+      "next_steps": ["4"]
+    },
+    {
+      "step_id": "4",
+      "name": "Model Decider",
+      "type": "processing",
+      "description": "Alternate model index: 0→1 or 1→0; default 0 if no prior record",
+      "mcp_tool": "decide_model",
+      "parameters": {
+        "input": {
+          "redis_value": "{{ step3.data.value }}"
+        }
+      },
+      "next_steps": ["5"]
+    },
+    {
+      "step_id": "5",
+      "name": "Store User Number",
+      "type": "processing",
+      "description": "Redis SET: persist new model index for this user with TTL=3600s",
+      "mcp_tool": "store_user_model",
+      "parameters": {
+        "input": {
+          "wa_id": "{{ step2.data.wa_id }}",
+          "model_index": "{{ step4.data.model_index }}"
+        }
+      },
+      "next_steps": ["6"]
+    },
+    {
+      "step_id": "6",
+      "name": "AI Agent",
+      "type": "ai_processing",
+      "description": "GPT hotel agent with SQL (MySQL) and pricing (Google Sheets) tools; read-only queries only; maintains per-user conversation memory",
+      "mcp_tool": "ai_hotel_agent",
+      "parameters": {
+        "input": {
+          "user_message": "{{ step2.data.message }}",
+          "wa_id": "{{ step2.data.wa_id }}",
+          "model_index": "{{ step4.data.model_index }}"
+        }
+      },
+      "next_steps": ["7"]
+    },
+    {
+      "step_id": "7",
+      "name": "Send Message",
+      "type": "output",
+      "description": "Send the AI agent's reply back to the guest via WhatsApp",
+      "mcp_tool": "send_whatsapp_reply",
+      "parameters": {
+        "input": {
+          "recipient_phone": "{{ step2.data.from_phone }}",
+          "message_text": "{{ step6.data.output }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

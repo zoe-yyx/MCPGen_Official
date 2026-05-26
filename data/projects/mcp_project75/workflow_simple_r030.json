@@ -1,0 +1,91 @@
+{
+  "workflow": {
+    "name": "DocAgent - AI Document Generation from Templates",
+    "description": "Chat-driven agent that helps users fill legal document templates. Phase 1: list/select template and collect user data via LLM conversation. Phase 2: DocProcess subworkflow — verify choice, format data, copy template, fill placeholders, generate download link.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "document-generation",
+      "llm-agent",
+      "templates",
+      "mock-google-drive"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "API_KEY": {
+        "required": true,
+        "description": "OpenAI-compatible API key for LLM calls",
+        "example": "sk-..."
+      },
+      "BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": false,
+        "description": "LLM model name",
+        "example": "gpt-5.1"
+      },
+      "TEMPLATE_DIR": {
+        "required": false,
+        "description": "Path to local template JSON files",
+        "example": "data/templates"
+      },
+      "GENERATED_DIR": {
+        "required": false,
+        "description": "Path where generated documents are saved",
+        "example": "data/generated"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "list_templates",
+      "type": "trigger",
+      "description": "List all available document templates (mock Google Drive scan)",
+      "mcp_tool": "list_templates",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "chat_with_doc_agent",
+      "type": "agent",
+      "description": "LLM DocAgent: user selects template and provides placeholder values via conversation",
+      "mcp_tool": "chat_with_doc_agent",
+      "parameters": {
+        "input": {
+          "user_message": "{{ user_input }}",
+          "template_catalog": "{{ step_1.data }}",
+          "template_metadata": "{{ step_3.data }}"
+        }
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "get_template_metadata",
+      "type": "api_call",
+      "description": "Fetch metadata (placeholders, conditionals) for the selected template",
+      "mcp_tool": "get_template_metadata",
+      "parameters": {
+        "input": {
+          "template_id": "{{ step_2.selected_template_id }}"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    }
+  ]
+}

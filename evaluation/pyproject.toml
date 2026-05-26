@@ -1,0 +1,19 @@
+[project]
+name = "mcpflow-evaluation"
+version = "0.1.0"
+description = "MCPFlow Tools Generation Evaluation Framework"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.104.1",
+    "fastmcp>=2.12.4",
+    "mypy>=1.18.2",
+    "networkx>=3.5",
+    "numpy>=2.4.6",
+    "openai>=2.3.0",
+    "pyyaml>=6.0.3",
+]
+
+[[tool.uv.index]]
+name = "pypi"
+url = "ENDPOINT_PLACEHOLDER"

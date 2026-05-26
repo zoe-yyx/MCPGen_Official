@@ -1,0 +1,138 @@
+{
+  "workflow": {
+    "name": "AI Trading Alert Bot",
+    "description": "Automates market data fetching, technical analysis, and AI-powered buy/sell signal generation. Monitors multiple cryptocurrencies and stocks, analyzes price trends, and delivers actionable trading alerts via Slack, Email, and SMS.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "trading",
+      "ai",
+      "crypto",
+      "stocks",
+      "alerts",
+      "technical-analysis"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "API_KEY": {
+        "required": true,
+        "description": "OpenAI-compatible API key for AI signal prediction",
+        "example": "sk-xxx"
+      },
+      "BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": true,
+        "description": "Model name for AI signal prediction",
+        "example": "gpt-5.1"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "fetch_crypto_prices",
+      "type": "data_fetch",
+      "description": "Fetch cryptocurrency prices from mock CoinGecko API",
+      "mcp_tool": "fetch_crypto_prices",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "fetch_stock_prices",
+      "type": "data_fetch",
+      "description": "Fetch stock prices from mock Alpha Vantage API",
+      "mcp_tool": "fetch_stock_prices",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "combine_market_data",
+      "type": "merge",
+      "description": "Combine crypto and stock data into a single list",
+      "mcp_tool": "combine_market_data",
+      "parameters": {
+        "input": {
+          "crypto_data": "{{ step_1.output }}",
+          "stock_data": "{{ step_2.output }}"
+        }
+      },
+      "next_steps": [
+        "4"
+      ]
+    },
+    {
+      "step_id": "4",
+      "name": "calculate_technical_indicators",
+      "type": "processing",
+      "description": "Calculate RSI, MACD, SMA, EMA, Bollinger Bands for each asset",
+      "mcp_tool": "calculate_technical_indicators",
+      "parameters": {
+        "input": {
+          "market_item": "{{ for each item in step_3.output }}"
+        }
+      },
+      "next_steps": [
+        "5"
+      ]
+    },
+    {
+      "step_id": "5",
+      "name": "call_ai_signal_prediction",
+      "type": "ai",
+      "description": "Use LLM (gpt-5.1) to predict buy/sell/hold signal per asset",
+      "mcp_tool": "call_ai_signal_prediction",
+      "parameters": {
+        "input": {
+          "technical_data": "{{ step_4.output }}"
+        }
+      },
+      "next_steps": [
+        "6"
+      ]
+    },
+    {
+      "step_id": "6",
+      "name": "analyze_signals_confidence",
+      "type": "processing",
+      "description": "Analyze confidence scores, determine action, risk level, and alert level",
+      "mcp_tool": "analyze_signals_confidence",
+      "parameters": {
+        "input": {
+          "ai_response": "{{ step_5.output }}"
+        }
+      },
+      "next_steps": [
+        "7"
+      ]
+    },
+    {
+      "step_id": "7",
+      "name": "validate_signal_filter",
+      "type": "filter",
+      "description": "Filter signals - only pass through those that should trigger alerts",
+      "mcp_tool": "validate_signal_filter",
+      "parameters": {
+        "input": {
+          "signal_data": "{{ step_6.output }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+{
+  "workflow": {
+    "name": "Multi-Asset Daily Market Snapshot",
+    "description": "Automated multi-asset market analysis: fetch prices → normalize → AI insights → log → email report.",
+    "type": "mcp_workflow",
+    "version": "1.1.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": ["finance", "market-data", "ai-analysis", "equities", "forex", "commodities"]
+  },
+  "configuration": {
+    "mock_mode": true,
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "OpenAI-compatible API key for market insights generation"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "OpenAI-compatible API base URL"
+      },
+      "OPENAI_MODEL": {
+        "required": false,
+        "description": "Model name for insights generation",
+        "example": "gpt-4.1-mini"
+      },
+      "TWELVEDATA_API_KEY": {
+        "required": false,
+        "description": "TwelveData API key (mocked with local data)"
+      },
+      "REPORTS_CSV": {
+        "required": false,
+        "description": "Path to reports CSV",
+        "example": "data/reports.csv"
+      },
+      "ERRORS_CSV": {
+        "required": false,
+        "description": "Path to error log CSV",
+        "example": "data/errors.csv"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "Set market assets",
+      "type": "configuration",
+      "description": "Define asset groups: Indices (SPY, QQQ, DIA), Forex (EUR/USD, etc.), Commodities (XAU/USD, USO)",
+      "mcp_tool": "set_market_assets",
+      "parameters": {},
+      "next_steps": ["2"]
+    },
+    {
+      "step_id": "2",
+      "name": "Split assets into symbols",
+      "type": "data_transformation",
+      "description": "Split comma-separated asset groups into individual symbol records",
+      "mcp_tool": "split_assets_symbols",
+      "parameters": {"assets_json": "<from step_1>"},
+      "next_steps": ["3", "4", "5"]
+    },
+    {
+      "step_id": "3",
+      "name": "Fetch Indices prices",
+      "type": "api_call",
+      "description": "Fetch daily price data for Indices: SPY, QQQ, DIA (mock TwelveData API)",
+      "mcp_tool": "fetch_asset_price",
+      "parameters": {"symbol": "<each Indices symbol>"},
+      "next_steps": ["6"]
+    },
+    {
+      "step_id": "4",
+      "name": "Fetch Forex prices",
+      "type": "api_call",
+      "description": "Fetch daily price data for Forex: EUR/USD, USD/INR, GBP/USD, USD/JPY (mock TwelveData API)",
+      "mcp_tool": "fetch_asset_price",
+      "parameters": {"symbol": "<each Forex symbol>"},
+      "next_steps": ["6"]
+    },
+    {
+      "step_id": "5",
+      "name": "Fetch Commodities prices",
+      "type": "api_call",
+      "description": "Fetch daily price data for Commodities: XAU/USD, USO (mock TwelveData API)",
+      "mcp_tool": "fetch_asset_price",
+      "parameters": {"symbol": "<each Commodities symbol>"},
+      "next_steps": ["6"]
+    },
+    {
+      "step_id": "6",
+      "name": "Validate all API responses",
+      "type": "validation",
+      "description": "Check if each API response status is 'ok'; separate valid from invalid",
+      "mcp_tool": "validate_api_response",
+      "parameters": {"response_json": "<each response from steps 3-5>"},
+      "condition": "valid == true → step_8, valid == false → step_7",
+      "next_steps": ["7", "8"]
+    },
+    {
+      "step_id": "7",
+      "name": "log_api_error",
+      "type": "error_handling",
+      "description": "Log each API error to CSV for failed symbols.",
+      "mcp_tool": "log_api_error",
+      "parameters": {"symbol": "<failed symbol>", "status": "<error status>", "message": "<error message>"},
+      "next_steps": ["7b"]
+    },
+    {
+      "step_id": "7b",
+      "name": "send_error_alert",
+      "type": "error_handling",
+      "description": "Send alert email for failed symbols after logging.",
+      "mcp_tool": "send_error_alert",
+      "parameters": {"symbol": "{{ step_7.symbol }}", "status": "{{ step_7.status }}", "message": "{{ step_7.message }}"},
+      "next_steps": ["8"]
+    },
+    {
+      "step_id": "8",
+      "name": "Normalize market data",
+      "type": "data_transformation",
+      "description": "Process raw API responses into clean normalized records with change % and trend",
+      "mcp_tool": "normalize_market_data",
+      "parameters": {"raw_responses_json": "<collected valid responses>"},
+      "next_steps": ["9"]
+    },
+    {
+      "step_id": "9",
+      "name": "Generate AI market insights",
+      "type": "ai_analysis",
+      "description": "Use gpt-4.1-mini to generate professional daily market report from normalized data",
+      "mcp_tool": "generate_market_insights",
+      "parameters": {"market_data_json": "<from step_8>"},
+      "next_steps": ["10"]
+    },
+    {
+      "step_id": "10",
+      "name": "Parse AI output",
+      "type": "data_transformation",
+      "description": "Extract structured sections: summary, movers, sentiment, insight, outlook",
+      "mcp_tool": "parse_ai_output",
+      "parameters": {"ai_text": "<from step_9>"},
+      "next_steps": ["11"]
+    },
+    {
+      "step_id": "11",
+      "name": "Log daily report",
+      "type": "storage",
+      "description": "Append report to CSV (mock Google Sheets)",
+      "mcp_tool": "log_daily_report",
+      "parameters": {"report_json": "<from step_10>", "total_assets": "<count>"},
+      "next_steps": ["12"]
+    },
+    {
+      "step_id": "12",
+      "name": "Send market email",
+      "type": "notification",
+      "description": "Send market summary email (mock Gmail)",
+      "mcp_tool": "send_market_email",
+      "parameters": {"report_json": "<from step_10>"},
+      "next_steps": ["13"]
+    },
+    {
+      "step_id": "13",
+      "name": "Save run metrics",
+      "type": "storage",
+      "description": "Save workflow execution metrics (symbol counts, model used, timestamps) to JSON",
+      "mcp_tool": null,
+      "parameters": {},
+      "next_steps": []
+    }
+  ]
+}

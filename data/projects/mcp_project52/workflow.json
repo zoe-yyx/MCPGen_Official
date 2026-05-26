@@ -1,0 +1,282 @@
+{
+  "workflow": {
+    "name": "Classify and Summarize WeChat Articles to Google Sheets and Notion",
+    "description": "Reads RSS feed URLs from Google Sheets, fetches articles, filters by date and uniqueness, classifies relevance with GPT-4.1-nano, generates Slack-formatted Chinese summaries, and saves results to Google Sheets and Notion.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": ["wechat", "rss", "ai", "google-sheets", "notion", "summarization"]
+  },
+  "configuration": {
+    "environment_variables": {
+      "AZURE_OPENAI_ENDPOINT": {
+        "required": true,
+        "description": "Azure OpenAI endpoint URL",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "AZURE_OPENAI_API_KEY": {
+        "required": true,
+        "description": "Azure OpenAI API key"
+      },
+      "AZURE_OPENAI_API_VERSION": {
+        "required": false,
+        "description": "Azure OpenAI API version",
+        "example": "2024-12-01-preview"
+      },
+      "AZURE_OPENAI_CLASSIFICATION_MODEL": {
+        "required": false,
+        "description": "Deployment name for classification",
+        "example": "gpt-4.1-nano"
+      },
+      "AZURE_OPENAI_SUMMARY_MODEL": {
+        "required": false,
+        "description": "Deployment name for summarization",
+        "example": "gpt-4.1-nano"
+      },
+      "GOOGLE_SERVICE_ACCOUNT_JSON": {
+        "required": false,
+        "description": "JSON string of Google Service Account credentials (preferred)"
+      },
+      "GOOGLE_TOKEN_JSON": {
+        "required": false,
+        "description": "JSON string of OAuth2 user token (alternative to service account)"
+      },
+      "GOOGLE_SPREADSHEET_ID": {
+        "required": false,
+        "description": "Google Spreadsheet ID",
+        "example": "12HW0_goHSaO2QpqLTYxNpEWePBK4o0nsniyAx-hkkXE"
+      },
+      "SHEET_SAVE_INITIAL": {
+        "required": false,
+        "description": "Sheet name for initial links",
+        "example": "Save Initial Links"
+      },
+      "SHEET_READ_RSS": {
+        "required": false,
+        "description": "Sheet name for RSS URLs",
+        "example": "Read RSS Links"
+      },
+      "SHEET_RELEVANT": {
+        "required": false,
+        "description": "Sheet name for relevant articles output",
+        "example": "Relevant Articles"
+      },
+      "NOTION_TOKEN": {
+        "required": true,
+        "description": "Notion integration token",
+        "example": "secret_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "NOTION_DATABASE_ID": {
+        "required": false,
+        "description": "Notion database UUID",
+        "example": "22e79d55-2675-8055-a143-d55302c3c1b1"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "read_initial_links",
+      "type": "input",
+      "description": "Read already-processed article links from the 'Save Initial Links' Google Sheet",
+      "mcp_tool": "tool_read_initial_links",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": ["2"]
+    },
+    {
+      "step_id": "2",
+      "name": "read_rss_links",
+      "type": "input",
+      "description": "Read RSS feed URLs from the 'Read RSS Links' Google Sheet",
+      "mcp_tool": "tool_read_rss_links",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": ["3"]
+    },
+    {
+      "step_id": "3",
+      "name": "rss_read",
+      "type": "processing",
+      "description": "Fetch and parse each RSS feed; runs once per feed URL",
+      "mcp_tool": "tool_rss_read",
+      "parameters": {
+        "input": {
+          "rss_feed_url": "{{ step_2.rss_feed_url }}",
+          "ignore_ssl": false
+        }
+      },
+      "next_steps": ["4"]
+    },
+    {
+      "step_id": "4",
+      "name": "process_pubdate",
+      "type": "processing",
+      "description": "Normalise pubDate to ISO-8601 format",
+      "mcp_tool": "tool_process_pubdate",
+      "parameters": {
+        "input": {
+          "entries": "{{ step_3.entries }}"
+        }
+      },
+      "next_steps": ["5"]
+    },
+    {
+      "step_id": "5",
+      "name": "filter_by_date",
+      "type": "filter",
+      "description": "Keep only articles published within the last 10 days",
+      "mcp_tool": "tool_filter_by_date",
+      "parameters": {
+        "input": {
+          "entries": "{{ step_4.entries }}",
+          "days_back": 10
+        }
+      },
+      "next_steps": ["6"]
+    },
+    {
+      "step_id": "6",
+      "name": "set_filtered_data",
+      "type": "processing",
+      "description": "Passthrough – retain all fields on filtered entries",
+      "mcp_tool": "tool_set_filtered_data",
+      "parameters": {
+        "input": {
+          "entries": "{{ step_5.entries }}"
+        }
+      },
+      "next_steps": ["7", "8"]
+    },
+    {
+      "step_id": "7",
+      "name": "save_initial_data",
+      "type": "output",
+      "description": "Append-or-update filtered articles in the 'Save Initial Links' sheet",
+      "mcp_tool": "tool_save_initial_data",
+      "parameters": {
+        "input": {
+          "rows": "{{ step_6.entries }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "8",
+      "name": "extract_pubdate_link",
+      "type": "processing",
+      "description": "Project entries to {pubDate, link} only for deduplication merge",
+      "mcp_tool": "tool_extract_pubdate_link",
+      "parameters": {
+        "input": {
+          "entries": "{{ step_6.entries }}"
+        }
+      },
+      "next_steps": ["9"]
+    },
+    {
+      "step_id": "9",
+      "name": "filter_unique_links",
+      "type": "filter",
+      "description": "Merge initial_links + rss_projections; keep only links appearing once (new articles)",
+      "mcp_tool": "tool_filter_unique_links",
+      "parameters": {
+        "input": {
+          "entries": "{{ merge(step_1.projections, step_8.projections) }}"
+        }
+      },
+      "next_steps": ["10"]
+    },
+    {
+      "step_id": "10",
+      "name": "restore_full_data",
+      "type": "processing",
+      "description": "Restore full RSS entry data for new unique links",
+      "mcp_tool": "tool_restore_full_data",
+      "parameters": {
+        "input": {
+          "merged_entries": "{{ merge(step_1.entries, step_6.entries) }}",
+          "full_entries": "{{ step_6.entries }}"
+        }
+      },
+      "next_steps": ["11"]
+    },
+    {
+      "step_id": "11",
+      "name": "clean_html_content",
+      "type": "processing",
+      "description": "Strip HTML tags and extract clean plain text from article content",
+      "mcp_tool": "tool_clean_html_content",
+      "parameters": {
+        "input": {
+          "entries": "{{ step_10.entries }}"
+        }
+      },
+      "next_steps": ["12"]
+    },
+    {
+      "step_id": "12",
+      "name": "classify_relevance",
+      "type": "ai",
+      "description": "Use GPT-4.1-nano to classify articles as 'relevant' or 'not_relevant'; discard non-relevant",
+      "mcp_tool": "tool_classify_relevance",
+      "parameters": {
+        "input": {
+          "title": "{{ step_11.title }}",
+          "cleaned_content": "{{ step_11.cleanedContent }}"
+        }
+      },
+      "next_steps": ["13"]
+    },
+    {
+      "step_id": "13",
+      "name": "summarize_article",
+      "type": "ai",
+      "description": "Generate a Slack-formatted Chinese summary with GPT-4.1-nano",
+      "mcp_tool": "tool_summarize_article",
+      "parameters": {
+        "input": {
+          "cleaned_content": "{{ step_11.cleanedContent }}",
+          "article_url": "{{ step_11.link }}",
+          "title": "{{ step_11.title }}"
+        }
+      },
+      "next_steps": ["14", "15"]
+    },
+    {
+      "step_id": "14",
+      "name": "save_relevant_article",
+      "type": "output",
+      "description": "Append relevant article with summary to the 'Relevant Articles' Google Sheet",
+      "mcp_tool": "tool_save_relevant_article",
+      "parameters": {
+        "input": {
+          "article_url": "{{ step_11.link }}",
+          "title": "{{ step_11.title }}",
+          "summary": "{{ step_13.text }}",
+          "summarized": "YES",
+          "fetched_at": "{{ now() }}",
+          "publish_date": "{{ step_11.pubDate | date('yyyy-MM-dd') }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "15",
+      "name": "create_notion_page",
+      "type": "output",
+      "description": "Create a new page in the Notion 'wechat' database",
+      "mcp_tool": "tool_create_notion_page",
+      "parameters": {
+        "input": {
+          "article_url": "{{ step_11.link }}",
+          "summary": "{{ step_13.text }}",
+          "fetched_at": "{{ now() }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

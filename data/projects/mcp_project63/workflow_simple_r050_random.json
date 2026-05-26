@@ -1,0 +1,136 @@
+{
+  "workflow": {
+    "name": "AI Trading Alert Bot",
+    "description": "Automates market data fetching, technical analysis, and AI-powered buy/sell signal generation. Monitors multiple cryptocurrencies and stocks, analyzes price trends, and delivers actionable trading alerts via Slack, Email, and SMS.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "trading",
+      "ai",
+      "crypto",
+      "stocks",
+      "alerts",
+      "technical-analysis"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "API_KEY": {
+        "required": true,
+        "description": "OpenAI-compatible API key for AI signal prediction",
+        "example": "sk-xxx"
+      },
+      "BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": true,
+        "description": "Model name for AI signal prediction",
+        "example": "gpt-5.1"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "fetch_crypto_prices",
+      "type": "data_fetch",
+      "description": "Fetch cryptocurrency prices from mock CoinGecko API",
+      "mcp_tool": "fetch_crypto_prices",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "fetch_stock_prices",
+      "type": "data_fetch",
+      "description": "Fetch stock prices from mock Alpha Vantage API",
+      "mcp_tool": "fetch_stock_prices",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "combine_market_data",
+      "type": "merge",
+      "description": "Combine crypto and stock data into a single list",
+      "mcp_tool": "combine_market_data",
+      "parameters": {
+        "input": {
+          "crypto_data": "{{ step_1.output }}",
+          "stock_data": "{{ step_2.output }}"
+        }
+      },
+      "next_steps": [
+        "4"
+      ]
+    },
+    {
+      "step_id": "4",
+      "name": "calculate_technical_indicators",
+      "type": "processing",
+      "description": "Calculate RSI, MACD, SMA, EMA, Bollinger Bands for each asset",
+      "mcp_tool": "calculate_technical_indicators",
+      "parameters": {
+        "input": {
+          "market_item": "{{ for each item in step_3.output }}"
+        }
+      },
+      "next_steps": [
+        "5"
+      ]
+    },
+    {
+      "step_id": "5",
+      "name": "call_ai_signal_prediction",
+      "type": "ai",
+      "description": "Use LLM (gpt-5.1) to predict buy/sell/hold signal per asset",
+      "mcp_tool": "call_ai_signal_prediction",
+      "parameters": {
+        "input": {
+          "technical_data": "{{ step_4.output }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "10",
+      "name": "generate_alert_message",
+      "type": "processing",
+      "description": "Generate formatted alert messages for Slack, Email, and SMS",
+      "mcp_tool": "generate_alert_message",
+      "parameters": {
+        "input": {
+          "signal": "{{ step_9.output }}"
+        }
+      },
+      "next_steps": [
+        "11"
+      ]
+    },
+    {
+      "step_id": "11",
+      "name": "send_slack_notification",
+      "type": "output",
+      "description": "Send Slack notification (mock)",
+      "mcp_tool": "send_slack_notification",
+      "parameters": {
+        "input": {
+          "alert_data": "{{ step_10.output }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[project]
+name = "hr-contract-archive"
+version = "1.0.0"
+description = "MCP project: Legal & Compliance Document Archiving (converted from n8n)"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["mcp_server"]

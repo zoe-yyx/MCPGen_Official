@@ -1,0 +1,203 @@
+{
+  "workflow": {
+    "name": "Look up English vocabulary via Telegram and save to Notion",
+    "description": "Telegram bot that accepts text, voice, or photo messages; detects input type; transcribes audio via Whisper; extracts text from photos via GPT vision; runs a GPT dictionary agent for vocabulary lookup with spell-check; replies via Telegram; saves to Notion.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "Telegram",
+      "Notion",
+      "GPT",
+      "Whisper",
+      "vocabulary",
+      "education",
+      "AI"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "OpenAI API key for GPT dictionary agent, Whisper, and vision",
+        "validation_pattern": "^sk-.*$",
+        "example": "REDACTED_API_KEY"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API endpoint",
+        "validation_pattern": "^https?://.+$",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": false,
+        "description": "LLM model name for dictionary agent",
+        "validation_pattern": "^[\\w\\-\\.]+$",
+        "example": "gpt-5.1"
+      },
+      "TELEGRAM_CHAT_ID": {
+        "required": false,
+        "description": "Authorized Telegram chat ID (mocked)",
+        "validation_pattern": "^\\d+$",
+        "example": "8308632587"
+      },
+      "TELEGRAM_BOT_TOKEN": {
+        "required": false,
+        "description": "Telegram Bot API token (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "mock_bot_token"
+      },
+      "NOTION_VOCABULARY_DB_ID": {
+        "required": false,
+        "description": "Notion vocabulary database ID (mocked — saved locally)",
+        "validation_pattern": "^[a-f0-9]+$",
+        "example": "17677348359f80529dabe1fd2acdb75b"
+      },
+      "TARGET_LANGUAGE": {
+        "required": false,
+        "description": "Language for translations in dictionary output",
+        "validation_pattern": "^.+$",
+        "example": "Traditional Chinese"
+      },
+      "MOCK_AUDIO_TRANSCRIPTION": {
+        "required": false,
+        "description": "Skip real Whisper API; return fixed word instead",
+        "validation_pattern": "^(true|false)$",
+        "example": "true"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "Telegram Trigger",
+      "type": "trigger",
+      "description": "Receive an incoming Telegram message (text, voice, or photo)",
+      "mcp_tool": "receive_telegram_message",
+      "parameters": {
+        "input": {
+          "text": "phenomenon",
+          "input_type": "text"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "Config — Edit Me",
+      "type": "processing",
+      "description": "Load TELEGRAM_CHAT_ID, TELEGRAM_BOT_TOKEN, NOTION_VOCABULARY_DB_ID, TARGET_LANGUAGE",
+      "mcp_tool": "load_config",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "Authorize User",
+      "type": "routing",
+      "description": "Compare sender chat ID against authorized TELEGRAM_CHAT_ID; authorized → step 5, unauthorized → step 4",
+      "mcp_tool": "check_authorization",
+      "parameters": {
+        "input": {
+          "telegram_message_json": "{{ step1.data }}",
+          "config_json": "{{ step2.data }}"
+        }
+      },
+      "next_steps": [
+        "4",
+        "5"
+      ]
+    },
+    {
+      "step_id": "4",
+      "name": "Reject Unauthorized User",
+      "type": "output",
+      "description": "Send rejection message to unauthorized sender; end workflow",
+      "mcp_tool": "reject_unauthorized_user",
+      "parameters": {
+        "input": {
+          "chat_id": "{{ step3.data.chat_id }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "5",
+      "name": "Detect Input Type",
+      "type": "routing",
+      "description": "Route by message type: text → step 6, voice → step 7, photo → step 11",
+      "mcp_tool": "detect_input_type",
+      "parameters": {
+        "input": {
+          "telegram_message_json": "{{ step1.data }}"
+        }
+      },
+      "next_steps": [
+        "6",
+        "7"
+      ]
+    },
+    {
+      "step_id": "6",
+      "name": "Set Text Input",
+      "type": "processing",
+      "description": "Extract text from the Telegram text message and set as chat_input",
+      "mcp_tool": "set_text_input",
+      "parameters": {
+        "input": {
+          "telegram_message_json": "{{ step1.data }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "7",
+      "name": "Get Voice File",
+      "type": "processing",
+      "description": "Call Telegram getFile API to resolve voice file_id to file_path",
+      "mcp_tool": "get_voice_file",
+      "parameters": {
+        "input": {
+          "file_id": "{{ step5.data.file_id }}"
+        }
+      },
+      "next_steps": [
+        "8"
+      ]
+    },
+    {
+      "step_id": "8",
+      "name": "Download Audio",
+      "type": "processing",
+      "description": "Download the voice audio file from Telegram CDN",
+      "mcp_tool": "download_audio",
+      "parameters": {
+        "input": {
+          "file_path": "{{ step7.data.result.file_path }}"
+        }
+      },
+      "next_steps": [
+        "9"
+      ]
+    },
+    {
+      "step_id": "9",
+      "name": "Transcribe Audio (Whisper)",
+      "type": "ai_processing",
+      "description": "Transcribe voice audio to text using OpenAI Whisper",
+      "mcp_tool": "transcribe_audio",
+      "parameters": {
+        "input": {
+          "local_audio_path": "{{ step8.data.local_path }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

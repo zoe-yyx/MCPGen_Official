@@ -1,0 +1,1 @@
+"""WeChatArticleSummarizer MCP server package."""

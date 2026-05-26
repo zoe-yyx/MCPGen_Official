@@ -1,0 +1,98 @@
+{
+  "workflow": {
+    "name": "Google Calendar Interview Scheduler",
+    "description": "Monitors a Google Sheet for new hiring prospects, calculates interview slots, creates Google Calendar events, generates personalized emails via GPT, and sends them via Gmail.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "interview",
+      "scheduling",
+      "google-calendar",
+      "gmail",
+      "AI",
+      "hiring"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "API key for OpenAI (GPT-5.1) to generate interview emails",
+        "validation_pattern": "^sk-.*$",
+        "example": "REDACTED_API_KEY"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API endpoint",
+        "validation_pattern": "^https?://.+$",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": false,
+        "description": "LLM model name for email generation",
+        "validation_pattern": "^[\\w\\-\\.]+$",
+        "example": "gpt-5.1"
+      },
+      "GOOGLE_SHEET_ID": {
+        "required": false,
+        "description": "Google Sheet document ID (mocked in this project)",
+        "validation_pattern": "^.+$",
+        "example": "1jSfGnVPscZGeZvUlvOyPxeghd870am4C3mK73xSRodU"
+      },
+      "GOOGLE_SHEET_NAME": {
+        "required": false,
+        "description": "Sheet tab name in the Google Sheet (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "Foglio1"
+      },
+      "GOOGLE_CALENDAR_ID": {
+        "required": false,
+        "description": "Google Calendar ID for creating events (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "EMAIL_PLACEHOLDER"
+      },
+      "GMAIL_SENDER_NAME": {
+        "required": false,
+        "description": "Sender name used in email signature",
+        "validation_pattern": "^.+$",
+        "example": "Surya"
+      },
+      "GMAIL_SENDER_COMPANY": {
+        "required": false,
+        "description": "Company name used in email signature",
+        "validation_pattern": "^.+$",
+        "example": "Techdome"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "Google Sheets Trigger",
+      "type": "trigger",
+      "description": "Poll Google Sheets for new hiring prospect rows with candidate NAME, EMAIL, and EDUCATIONAL info",
+      "mcp_tool": "google_sheets_trigger",
+      "parameters": {
+        "input": {
+          "sheet_id": "{{ env.GOOGLE_SHEET_ID }}",
+          "sheet_name": "{{ env.GOOGLE_SHEET_NAME }}"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "Calculate Next Interview Slot",
+      "type": "processing",
+      "description": "Calculate the next available interview time slot (Mon/Wed/Fri at 3:00 PM, always in the future)",
+      "mcp_tool": "calculate_next_slot",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": []
+    }
+  ]
+}

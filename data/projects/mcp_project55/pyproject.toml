@@ -1,0 +1,11 @@
+[project]
+name = "mcp-project55"
+version = "0.1.0"
+description = "MCP project - Automated QR Ticket Scanner & Validator (mock Google Sheets with local JSON)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=2.11.3",
+    "python-dotenv>=1.1.0",
+    "loguru>=0.7.0",
+]

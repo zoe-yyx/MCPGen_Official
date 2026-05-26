@@ -1,0 +1,120 @@
+{
+  "workflow": {
+    "name": "Chat with PDF/MD/Text Files using GraphRAG",
+    "description": "Ingest documents from local folder into a graph-based knowledge store, then chat with the documents using an LLM with GraphRAG context.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "n8n workflow: Chat with PDF / MD / Text Files using GraphRAG (no vector store needed)",
+    "tags": [
+      "graphrag",
+      "pdf",
+      "knowledge-graph",
+      "chat",
+      "rag"
+    ]
+  },
+  "configuration": {
+    "mock_mode": true,
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "OpenAI-compatible API key for LLM calls"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "OpenAI-compatible API base URL",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "OPENAI_MODEL": {
+        "required": false,
+        "description": "Model name for LLM calls",
+        "example": "gpt-5.1"
+      },
+      "DATA_FOLDER": {
+        "required": false,
+        "description": "Path to local folder containing PDF/MD/TXT documents (mock Google Drive)",
+        "example": "data"
+      },
+      "GRAPH_STORE_PATH": {
+        "required": false,
+        "description": "Path to local JSON graph store (mock InfraNodus)",
+        "example": "results/outputs/graph_store.json"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "search_local_files",
+      "type": "source",
+      "description": "Search for files in local folder. Replaces Google Drive Search node.",
+      "mcp_tool": "search_local_files",
+      "parameters": {
+        "input": {
+          "folder_path": "{{ env.DATA_FOLDER }}"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "retrieve_file",
+      "type": "source",
+      "description": "Retrieve file metadata and path. Replaces Google Drive Download node.",
+      "mcp_tool": "retrieve_file",
+      "parameters": {
+        "input": {
+          "file_path": "{{ step_1.files[i].id }}"
+        }
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "detect_file_type",
+      "type": "transform",
+      "description": "Detect file category by MIME type. Replaces Switch node. Routes to 4a/4b/4c based on detected type (pdf/text/markdown).",
+      "mcp_tool": "detect_file_type",
+      "parameters": {
+        "input": {
+          "mime_type": "{{ step_2.mimeType }}"
+        }
+      },
+      "condition": "{{ step_3.category }}",
+      "next_steps": [
+        "4a",
+        "4b"
+      ]
+    },
+    {
+      "step_id": "4a",
+      "name": "extract_pdf_text",
+      "type": "transform",
+      "description": "Extract text from PDF. Selected when step_3 returns 'pdf'.",
+      "mcp_tool": "extract_pdf_text",
+      "parameters": {
+        "input": {
+          "file_path": "{{ step_2.path }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "4b",
+      "name": "extract_text_file",
+      "type": "transform",
+      "description": "Extract text from plain text file. Selected when step_3 returns 'text'.",
+      "mcp_tool": "extract_text_file",
+      "parameters": {
+        "input": {
+          "file_path": "{{ step_2.path }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

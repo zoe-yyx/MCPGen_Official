@@ -1,0 +1,221 @@
+{
+  "workflow": {
+    "name": "AI-powered leads-to-sales outreach automation",
+    "description": "Intelligent sales outreach engine that transforms raw leads into highly personalized, ready-to-send introductory email drafts. Fetches leads, enriches with AI research, and drafts emails using AI sales assistant.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "n8n workflow: Leads To Sales automation with Groq + Tavily",
+    "tags": ["sales", "leads", "email", "ai-research", "outreach", "automation"]
+  },
+  "configuration": {
+    "mock_mode": true,
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "OpenAI-compatible API key for AI agent calls"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "OpenAI-compatible API base URL",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "OPENAI_MODEL": {
+        "required": false,
+        "description": "Model name for AI agent calls",
+        "example": "gpt-5.1"
+      },
+      "LEADS_CSV_PATH": {
+        "required": false,
+        "description": "Path to leads CSV file (mock Google Sheets)",
+        "example": "data/leads.csv"
+      },
+      "TEMPLATES_CSV_PATH": {
+        "required": false,
+        "description": "Path to email templates CSV (mock Google Sheets)",
+        "example": "data/templates.csv"
+      },
+      "SERVICES_CSV_PATH": {
+        "required": false,
+        "description": "Path to services CSV (mock Google Sheets)",
+        "example": "data/services.csv"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "get_leads",
+      "type": "source",
+      "description": "Read leads from CSV. Replaces Get row(s) in sheet Google Sheets node.",
+      "mcp_tool": "get_leads",
+      "parameters": {
+        "input": { "csv_path": "data/leads.csv" }
+      },
+      "next_steps": ["2"]
+    },
+    {
+      "step_id": "2",
+      "name": "filter_unresearched_leads",
+      "type": "transform",
+      "description": "Filter leads where Hasil Riset is empty. Replaces If1 node.",
+      "mcp_tool": "filter_unresearched_leads",
+      "parameters": {
+        "input": { "leads_json": "{{ step_1.output }}" }
+      },
+      "next_steps": ["3"]
+    },
+    {
+      "step_id": "3",
+      "name": "search_internet",
+      "type": "source",
+      "description": "Search internet for company info. Replaces Tavily Search Internet1 tool (mock).",
+      "mcp_tool": "search_internet",
+      "parameters": {
+        "input": { "query": "{{ lead.Perusahaan }} business overview" }
+      },
+      "next_steps": ["4"]
+    },
+    {
+      "step_id": "4",
+      "name": "research_company",
+      "type": "ai_analysis",
+      "description": "AI company research agent. Replaces Company Research1 LangChain Agent + Groq.",
+      "mcp_tool": "research_company",
+      "parameters": {
+        "input": {
+          "company_name": "{{ lead.Perusahaan }}",
+          "search_results": "{{ step_3.output }}"
+        }
+      },
+      "next_steps": ["5"]
+    },
+    {
+      "step_id": "5",
+      "name": "update_lead_research",
+      "type": "storage",
+      "description": "Save research results to leads CSV. Replaces updateDescription Google Sheets node.",
+      "mcp_tool": "update_lead_research",
+      "parameters": {
+        "input": {
+          "csv_path": "data/leads.csv",
+          "company_name": "{{ lead.Perusahaan }}",
+          "research_result": "{{ step_4.output }}"
+        }
+      },
+      "next_steps": ["6"]
+    },
+    {
+      "step_id": "6",
+      "name": "update_lead_status",
+      "type": "storage",
+      "description": "Update lead status to 'Leads'. Replaces updateStatus Google Sheets node.",
+      "mcp_tool": "update_lead_status",
+      "parameters": {
+        "input": {
+          "csv_path": "data/leads.csv",
+          "company_name": "{{ lead.Perusahaan }}",
+          "status": "Leads"
+        }
+      },
+      "next_steps": ["7"]
+    },
+    {
+      "step_id": "7",
+      "name": "get_email_template",
+      "type": "source",
+      "description": "Get email template by stage. Replaces getTemplate Google Sheets node.",
+      "mcp_tool": "get_email_template",
+      "parameters": {
+        "input": {
+          "csv_path": "data/templates.csv",
+          "stage": "Leads"
+        }
+      },
+      "next_steps": ["8"]
+    },
+    {
+      "step_id": "8",
+      "name": "get_services",
+      "type": "source",
+      "description": "Get products/services list. Replaces getService Google Sheets node.",
+      "mcp_tool": "get_services",
+      "parameters": {
+        "input": { "csv_path": "data/services.csv" }
+      },
+      "next_steps": ["9"]
+    },
+    {
+      "step_id": "9",
+      "name": "search_internet_hook",
+      "type": "source",
+      "description": "Search for email hook data. Replaces Tavily Search Internet2 tool (mock).",
+      "mcp_tool": "search_internet",
+      "parameters": {
+        "input": { "query": "{{ lead.Jabatan }} challenges {{ lead.Perusahaan }} industry 2025" }
+      },
+      "next_steps": ["10"]
+    },
+    {
+      "step_id": "10",
+      "name": "draft_sales_email",
+      "type": "ai_analysis",
+      "description": "AI sales email drafting. Replaces AI Sales Assistant LangChain Agent + Groq + Structured Output Parser.",
+      "mcp_tool": "draft_sales_email",
+      "parameters": {
+        "input": {
+          "company": "{{ lead.Perusahaan }}",
+          "recipient_name": "{{ lead.Nama }}",
+          "recipient_position": "{{ lead.Jabatan }}",
+          "research_result": "{{ step_4.output }}",
+          "stage": "{{ step_7.Tahap }}",
+          "theme": "{{ step_7.Tema }}",
+          "sample_message": "{{ step_7['Contoh message'] }}",
+          "services_json": "{{ step_8.output }}",
+          "additional_research": "{{ step_9.output }}"
+        }
+      },
+      "next_steps": ["11"]
+    },
+    {
+      "step_id": "11",
+      "name": "save_email_draft",
+      "type": "storage",
+      "description": "Save email draft to leads CSV. Replaces draftEmail Google Sheets node.",
+      "mcp_tool": "save_email_draft",
+      "parameters": {
+        "input": {
+          "csv_path": "data/leads.csv",
+          "company_name": "{{ lead.Perusahaan }}",
+          "email_draft": "{{ step_10.output }}"
+        }
+      },
+      "next_steps": ["12"]
+    },
+    {
+      "step_id": "12",
+      "name": "encode_company_url",
+      "type": "transform",
+      "description": "URL-encode company name. Replaces Code node.",
+      "mcp_tool": "encode_company_url",
+      "parameters": {
+        "input": { "company_name": "{{ lead.Perusahaan }}" }
+      },
+      "next_steps": ["13"]
+    },
+    {
+      "step_id": "13",
+      "name": "save_send_link",
+      "type": "storage",
+      "description": "Save send-email trigger link to leads CSV. Replaces inputLink Google Sheets node.",
+      "mcp_tool": "save_send_link",
+      "parameters": {
+        "input": {
+          "csv_path": "data/leads.csv",
+          "company_name": "{{ lead.Perusahaan }}",
+          "send_link": "ENDPOINT_PLACEHOLDER step_12.encoded }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

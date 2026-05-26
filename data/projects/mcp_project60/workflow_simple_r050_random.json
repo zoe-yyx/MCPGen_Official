@@ -1,0 +1,134 @@
+{
+  "workflow": {
+    "name": "Multi-Asset Daily Market Snapshot",
+    "description": "Automated multi-asset market analysis: fetch prices → normalize → AI insights → log → email report.",
+    "type": "mcp_workflow",
+    "version": "1.1.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "finance",
+      "market-data",
+      "ai-analysis",
+      "equities",
+      "forex",
+      "commodities"
+    ]
+  },
+  "configuration": {
+    "mock_mode": true,
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "OpenAI-compatible API key for market insights generation"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "OpenAI-compatible API base URL"
+      },
+      "OPENAI_MODEL": {
+        "required": false,
+        "description": "Model name for insights generation",
+        "example": "gpt-4.1-mini"
+      },
+      "TWELVEDATA_API_KEY": {
+        "required": false,
+        "description": "TwelveData API key (mocked with local data)"
+      },
+      "REPORTS_CSV": {
+        "required": false,
+        "description": "Path to reports CSV",
+        "example": "data/reports.csv"
+      },
+      "ERRORS_CSV": {
+        "required": false,
+        "description": "Path to error log CSV",
+        "example": "data/errors.csv"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "Set market assets",
+      "type": "configuration",
+      "description": "Define asset groups: Indices (SPY, QQQ, DIA), Forex (EUR/USD, etc.), Commodities (XAU/USD, USO)",
+      "mcp_tool": "set_market_assets",
+      "parameters": {},
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "Split assets into symbols",
+      "type": "data_transformation",
+      "description": "Split comma-separated asset groups into individual symbol records",
+      "mcp_tool": "split_assets_symbols",
+      "parameters": {
+        "assets_json": "<from step_1>"
+      },
+      "next_steps": [
+        "3",
+        "4",
+        "5"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "Fetch Indices prices",
+      "type": "api_call",
+      "description": "Fetch daily price data for Indices: SPY, QQQ, DIA (mock TwelveData API)",
+      "mcp_tool": "fetch_asset_price",
+      "parameters": {
+        "symbol": "<each Indices symbol>"
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "4",
+      "name": "Fetch Forex prices",
+      "type": "api_call",
+      "description": "Fetch daily price data for Forex: EUR/USD, USD/INR, GBP/USD, USD/JPY (mock TwelveData API)",
+      "mcp_tool": "fetch_asset_price",
+      "parameters": {
+        "symbol": "<each Forex symbol>"
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "5",
+      "name": "Fetch Commodities prices",
+      "type": "api_call",
+      "description": "Fetch daily price data for Commodities: XAU/USD, USO (mock TwelveData API)",
+      "mcp_tool": "fetch_asset_price",
+      "parameters": {
+        "symbol": "<each Commodities symbol>"
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "9",
+      "name": "Generate AI market insights",
+      "type": "ai_analysis",
+      "description": "Use gpt-4.1-mini to generate professional daily market report from normalized data",
+      "mcp_tool": "generate_market_insights",
+      "parameters": {
+        "market_data_json": "<from step_8>"
+      },
+      "next_steps": [
+        "10"
+      ]
+    },
+    {
+      "step_id": "10",
+      "name": "Parse AI output",
+      "type": "data_transformation",
+      "description": "Extract structured sections: summary, movers, sentiment, insight, outlook",
+      "mcp_tool": "parse_ai_output",
+      "parameters": {
+        "ai_text": "<from step_9>"
+      },
+      "next_steps": []
+    }
+  ]
+}

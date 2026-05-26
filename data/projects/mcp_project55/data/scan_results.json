@@ -1,0 +1,32 @@
+[
+  {
+    "ID": "1",
+    "NAMA": "Ahmad Rizky",
+    "EMAIL": "EMAIL_PLACEHOLDER",
+    "NO HP": "081234567890",
+    "TIKET": "TKT-001-ABC",
+    "STATUS": "VALID",
+    "UKURAN JERSEY": "L",
+    "GOLONGAN DARAH": "O"
+  },
+  {
+    "ID": "2",
+    "NAMA": "Siti Nurhaliza",
+    "EMAIL": "EMAIL_PLACEHOLDER",
+    "NO HP": "082345678901",
+    "TIKET": "TKT-002-DEF",
+    "STATUS": "VALID",
+    "UKURAN JERSEY": "M",
+    "GOLONGAN DARAH": "A"
+  },
+  {
+    "ID": "-",
+    "NAMA": "-",
+    "EMAIL": "-",
+    "NO HP": "-",
+    "TIKET": "TKT-INVALID-999",
+    "STATUS": "TIDAK VALID",
+    "UKURAN JERSEY": "-",
+    "GOLONGAN DARAH": "-"
+  }
+]

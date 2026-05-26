@@ -1,0 +1,112 @@
+{
+  "workflow": {
+    "name": "AI-powered leads-to-sales outreach automation",
+    "description": "Intelligent sales outreach engine that transforms raw leads into highly personalized, ready-to-send introductory email drafts. Fetches leads, enriches with AI research, and drafts emails using AI sales assistant.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "n8n workflow: Leads To Sales automation with Groq + Tavily",
+    "tags": [
+      "sales",
+      "leads",
+      "email",
+      "ai-research",
+      "outreach",
+      "automation"
+    ]
+  },
+  "configuration": {
+    "mock_mode": true,
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "OpenAI-compatible API key for AI agent calls"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "OpenAI-compatible API base URL",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "OPENAI_MODEL": {
+        "required": false,
+        "description": "Model name for AI agent calls",
+        "example": "gpt-5.1"
+      },
+      "LEADS_CSV_PATH": {
+        "required": false,
+        "description": "Path to leads CSV file (mock Google Sheets)",
+        "example": "data/leads.csv"
+      },
+      "TEMPLATES_CSV_PATH": {
+        "required": false,
+        "description": "Path to email templates CSV (mock Google Sheets)",
+        "example": "data/templates.csv"
+      },
+      "SERVICES_CSV_PATH": {
+        "required": false,
+        "description": "Path to services CSV (mock Google Sheets)",
+        "example": "data/services.csv"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "get_leads",
+      "type": "source",
+      "description": "Read leads from CSV. Replaces Get row(s) in sheet Google Sheets node.",
+      "mcp_tool": "get_leads",
+      "parameters": {
+        "input": {
+          "csv_path": "data/leads.csv"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "filter_unresearched_leads",
+      "type": "transform",
+      "description": "Filter leads where Hasil Riset is empty. Replaces If1 node.",
+      "mcp_tool": "filter_unresearched_leads",
+      "parameters": {
+        "input": {
+          "leads_json": "{{ step_1.output }}"
+        }
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "search_internet",
+      "type": "source",
+      "description": "Search internet for company info. Replaces Tavily Search Internet1 tool (mock).",
+      "mcp_tool": "search_internet",
+      "parameters": {
+        "input": {
+          "query": "{{ lead.Perusahaan }} business overview"
+        }
+      },
+      "next_steps": [
+        "4"
+      ]
+    },
+    {
+      "step_id": "4",
+      "name": "research_company",
+      "type": "ai_analysis",
+      "description": "AI company research agent. Replaces Company Research1 LangChain Agent + Groq.",
+      "mcp_tool": "research_company",
+      "parameters": {
+        "input": {
+          "company_name": "{{ lead.Perusahaan }}",
+          "search_results": "{{ step_3.output }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "tpl_002",
+  "name": "KİRA SÖZLEŞMESİ",
+  "description": "Residential or commercial property rental agreement",
+  "placeholders": [
+    "LANDLORD_NAME",
+    "TENANT_NAME",
+    "PROPERTY_ADDRESS",
+    "MONTHLY_RENT",
+    "START_DATE",
+    "END_DATE",
+    "TODAY_DATE"
+  ],
+  "conditionals": [
+    {
+      "flag": "PET_PERMISSION",
+      "label": "Pet Permission",
+      "help": "Include a clause allowing pets in the property?",
+      "placeholders": ["PET_DETAILS"]
+    },
+    {
+      "flag": "DEPOSIT",
+      "label": "Security Deposit",
+      "help": "Include a security deposit clause?",
+      "placeholders": ["DEPOSIT_AMOUNT"]
+    }
+  ],
+  "content": "KİRA SÖZLEŞMESİ\n===============\n\nBu sözleşme {{TODAY_DATE}} tarihinde aşağıdaki taraflar arasında akdedilmiştir.\n\nKİRAYA VEREN: {{LANDLORD_NAME}}\nKİRACİ      : {{TENANT_NAME}}\n\nMADDE 1 – KİRALANAN MÜLKİN TANIMI\nKiralanacak mülkün adresi: {{PROPERTY_ADDRESS}}\n\nMADDE 2 – KİRA BEDELİ VE SÜRESİ\nAylık Kira: {{MONTHLY_RENT}} TL\nKira Başlangıç: {{START_DATE}}\nKira Bitiş   : {{END_DATE}}\n\n[[DEPOSIT:START]]\nMADDE 3 – DEPOZITO\nKiracı, sözleşme başlangıcında {{DEPOSIT_AMOUNT}} TL depozito yatırmayı kabul eder.\n[[DEPOSIT:END]]\n\n[[PET_PERMISSION:START]]\nMADDE 4 – EVCIL HAYVAN\nKiracı, mülkte aşağıdaki evcil hayvanı bulundurabilir: {{PET_DETAILS}}\n[[PET_PERMISSION:END]]\n\nMADDE 5 – İMZA\nTaraflar bu sözleşmeyi okumuş ve kabul etmiştir.\n\nKiraya Veren İmzası: _______________   Kiracı İmzası: _______________\n"
+}

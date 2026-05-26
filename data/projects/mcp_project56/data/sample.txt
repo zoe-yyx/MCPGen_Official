@@ -1,0 +1,4 @@
+GraphRAG is a powerful technique that combines knowledge graphs with retrieval-augmented generation.
+It enables more structured and context-aware information retrieval compared to traditional vector-based RAG.
+By representing documents as graphs, relationships between entities are preserved and can be queried effectively.
+This approach is particularly useful for complex documents where understanding connections between concepts is important.

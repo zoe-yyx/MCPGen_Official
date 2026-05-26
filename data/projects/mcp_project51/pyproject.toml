@@ -1,0 +1,29 @@
+[project]
+name = "mcp-user-review-aggregation"
+version = "1.0.0"
+description = "MCP project: automated Amazon review aggregation with sentiment analysis"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "openai>=1.30.0",
+    "httpx>=0.27.0",
+    "beautifulsoup4>=4.12.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["mcp_server"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[[tool.uv.index]]
+url = "ENDPOINT_PLACEHOLDER"
+default = true

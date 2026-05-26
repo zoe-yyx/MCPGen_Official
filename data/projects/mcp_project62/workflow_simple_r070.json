@@ -1,0 +1,137 @@
+{
+  "workflow": {
+    "name": "Daily Stock Monitor with AI Summary Email",
+    "description": "Scrapes Financial Times via Bright Data for top 10 US stocks, saves results to Google Sheets, aggregates data, generates an AI-powered HTML summary email, and sends it via Gmail.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "stocks",
+      "scraping",
+      "ai-summary",
+      "email",
+      "finance"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "API_KEY": {
+        "required": true,
+        "description": "OpenAI-compatible API key for LLM calls",
+        "example": "sk-xxx"
+      },
+      "BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": true,
+        "description": "Model name for AI summary generation",
+        "example": "gpt-5.1"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "step_1",
+      "name": "get_sample_data",
+      "type": "trigger",
+      "description": "Provide the list of top 10 US stocks to track",
+      "mcp_tool": "get_sample_data",
+      "parameters": {
+        "input": {}
+      },
+      "next_steps": [
+        "step_2"
+      ]
+    },
+    {
+      "step_id": "step_2",
+      "name": "split_and_set_keywords",
+      "type": "processing",
+      "description": "Split stock array into individual items and extract ticker as keyword",
+      "mcp_tool": "split_and_set_keywords",
+      "parameters": {
+        "input": {
+          "stocks": "{{ step_1.output }}"
+        }
+      },
+      "next_steps": [
+        "step_3"
+      ]
+    },
+    {
+      "step_id": "step_3",
+      "name": "scrape_financial_times",
+      "type": "data_fetch",
+      "description": "Trigger Bright Data Financial Times scraper for all stock keywords (mock)",
+      "mcp_tool": "scrape_financial_times",
+      "parameters": {
+        "input": {
+          "keywords": "{{ step_2.output }}"
+        }
+      },
+      "next_steps": [
+        "step_4"
+      ]
+    },
+    {
+      "step_id": "step_4",
+      "name": "get_scraping_progress",
+      "type": "processing",
+      "description": "Check scraping progress status - polls until ready (mock: always ready)",
+      "mcp_tool": "get_scraping_progress",
+      "parameters": {
+        "input": {
+          "snapshot_ids": "{{ step_3.output }}"
+        }
+      },
+      "next_steps": [
+        "step_5"
+      ]
+    },
+    {
+      "step_id": "step_5",
+      "name": "get_snapshot_data",
+      "type": "data_fetch",
+      "description": "Retrieve scraped data from Bright Data snapshots (mock)",
+      "mcp_tool": "get_snapshot_data",
+      "parameters": {
+        "input": {
+          "snapshot_ids": "{{ step_3.output }}"
+        }
+      },
+      "next_steps": [
+        "step_6",
+        "step_7"
+      ]
+    },
+    {
+      "step_id": "step_6",
+      "name": "save_to_sheets",
+      "type": "output",
+      "description": "Save scraped stock data to Google Sheets (mock: local JSON)",
+      "mcp_tool": "save_to_sheets",
+      "parameters": {
+        "input": {
+          "stock_data": "{{ step_5.output }}"
+        }
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "step_7",
+      "name": "aggregate_data",
+      "type": "processing",
+      "description": "Aggregate all scraped stock items into a single data object",
+      "mcp_tool": "aggregate_data",
+      "parameters": {
+        "input": {
+          "stock_items": "{{ step_5.output }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

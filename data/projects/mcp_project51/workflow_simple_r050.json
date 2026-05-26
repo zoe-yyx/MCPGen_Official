@@ -1,0 +1,134 @@
+{
+  "workflow": {
+    "name": "User Review Aggregation",
+    "description": "Automated Amazon review monitoring: scrape → sentiment → summarize → store → alert.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "reviews",
+      "sentiment",
+      "amazon",
+      "automation"
+    ]
+  },
+  "configuration": {
+    "mock_mode": true,
+    "environment_variables": {
+      "AZURE_OPENAI_ENDPOINT": {
+        "required": false,
+        "description": "Azure OpenAI endpoint URL",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "AZURE_OPENAI_API_KEY": {
+        "required": false,
+        "description": "Azure OpenAI API key"
+      },
+      "AZURE_OPENAI_API_VERSION": {
+        "required": false,
+        "description": "API version",
+        "example": "2024-02-01"
+      },
+      "AZURE_SENTIMENT_DEPLOYMENT": {
+        "required": false,
+        "description": "Deployment name for sentiment analysis",
+        "example": "gpt-4o-mini"
+      },
+      "AZURE_SUMMARY_DEPLOYMENT": {
+        "required": false,
+        "description": "Deployment name for summarization",
+        "example": "gpt-4o"
+      },
+      "DECODO_API_KEY": {
+        "required": false,
+        "description": "Decodo scraper API key (only for real mode)"
+      },
+      "TELEGRAM_BOT_TOKEN": {
+        "required": false,
+        "description": "Telegram Bot token for alert notifications"
+      },
+      "TELEGRAM_CHAT_ID": {
+        "required": false,
+        "description": "Telegram chat/group ID to send alerts to"
+      },
+      "URL_CSV_PATH": {
+        "required": false,
+        "description": "Path to CSV file containing product URLs",
+        "example": "data/urls.csv"
+      },
+      "RESULTS_CSV_PATH": {
+        "required": false,
+        "description": "Path to output CSV file for aggregated results",
+        "example": "results/outputs/review_aggregations.csv"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "get_urls_from_csv",
+      "type": "source",
+      "description": "Read product URLs from local CSV. Replaces Google Sheets node.",
+      "mcp_tool": "tool_get_urls_from_csv",
+      "parameters": {
+        "input": {
+          "csv_path": "data/urls.csv",
+          "url_column": "url"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "scrape_amazon_reviews",
+      "type": "scraping",
+      "description": "Scrape Amazon product reviews via Decodo API (or mock data).",
+      "mcp_tool": "tool_scrape_amazon_reviews",
+      "parameters": {
+        "input": {
+          "url": "{{ step_1.urls[i] }}",
+          "decodo_api_key": "{{ env.DECODO_API_KEY }}",
+          "mock_mode": true
+        }
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "format_reviews",
+      "type": "transform",
+      "description": "Transform raw Decodo JSON into clean author-rating-content text blocks.",
+      "mcp_tool": "tool_format_reviews",
+      "parameters": {
+        "input": {
+          "decodo_response": "{{ step_2.result }}",
+          "source_url": "{{ step_1.urls[i] }}"
+        }
+      },
+      "next_steps": [
+        "4"
+      ]
+    },
+    {
+      "step_id": "4",
+      "name": "analyze_sentiment",
+      "type": "ai_analysis",
+      "description": "Classify overall sentiment as positive / neutral / negative via Azure OpenAI.",
+      "mcp_tool": "tool_analyze_sentiment",
+      "parameters": {
+        "input": {
+          "reviews": "{{ step_3.reviews }}",
+          "azure_endpoint": "{{ env.AZURE_OPENAI_ENDPOINT }}",
+          "api_key": "{{ env.AZURE_OPENAI_API_KEY }}",
+          "deployment_name": "{{ env.AZURE_SENTIMENT_DEPLOYMENT }}",
+          "mock_mode": true
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

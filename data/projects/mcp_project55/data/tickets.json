@@ -1,0 +1,29 @@
+[
+  {
+    "ID": "1",
+    "NAMA": "Ahmad Rizky",
+    "EMAIL": "EMAIL_PLACEHOLDER",
+    "NO HP": "081234567890",
+    "TIKET": "TKT-001-ABC",
+    "UKURAN JERSEY": "L",
+    "GOLONGAN DARAH": "O"
+  },
+  {
+    "ID": "2",
+    "NAMA": "Siti Nurhaliza",
+    "EMAIL": "EMAIL_PLACEHOLDER",
+    "NO HP": "082345678901",
+    "TIKET": "TKT-002-DEF",
+    "UKURAN JERSEY": "M",
+    "GOLONGAN DARAH": "A"
+  },
+  {
+    "ID": "3",
+    "NAMA": "Budi Santoso",
+    "EMAIL": "EMAIL_PLACEHOLDER",
+    "NO HP": "083456789012",
+    "TIKET": "TKT-003-GHI",
+    "UKURAN JERSEY": "XL",
+    "GOLONGAN DARAH": "B"
+  }
+]

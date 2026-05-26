@@ -1,0 +1,18 @@
+[project]
+name = "mcp-project57"
+version = "0.1.0"
+description = "AI-powered concert ticket validation and fan experience orchestration - MCP Project converted from n8n workflow"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=2.11.3",
+    "mcp[cli]>=1.13.0",
+    "python-dotenv>=1.1.0",
+    "loguru>=0.7.0",
+    "openai>=1.30.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]

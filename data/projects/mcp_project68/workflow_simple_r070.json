@@ -1,0 +1,81 @@
+{
+  "steps": [
+    {
+      "step_id": "1",
+      "name": "fetch_leave_records",
+      "tool": "fetch_leave_records",
+      "description": "Read all employee leave records from local mock storage (simulates Google Sheets).",
+      "parameters": {},
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "validate_normalize_leave_data",
+      "tool": "validate_normalize_leave_data",
+      "description": "Validate fields and compute needsActivation / needsReset flags against today's date.",
+      "parameters": {
+        "records_json": "1.data"
+      },
+      "next_steps": [
+        "3",
+        "6"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "notify_hr_channel",
+      "tool": "notify_hr_channel",
+      "description": "Post leave-activated message to HR Slack channel. Runs for each record where needsActivation=True.",
+      "parameters": {
+        "employee_name": "2.data.name",
+        "employee_email": "2.data.email",
+        "start_date": "2.data.startDate",
+        "end_date": "2.data.endDate"
+      },
+      "next_steps": [
+        "4"
+      ]
+    },
+    {
+      "step_id": "4",
+      "name": "send_ooo_reminder_email",
+      "tool": "send_ooo_reminder_email",
+      "description": "Email the employee to update their Slack status to Out of Office.",
+      "parameters": {
+        "to_email": "2.data.email",
+        "employee_name": "2.data.name",
+        "start_date": "2.data.startDate",
+        "end_date": "2.data.endDate"
+      },
+      "next_steps": [
+        "5"
+      ]
+    },
+    {
+      "step_id": "5",
+      "name": "mark_leave_as_active",
+      "tool": "mark_leave_as_active",
+      "description": "Update leave record status to Active to prevent duplicate activations.",
+      "parameters": {
+        "email": "2.data.email",
+        "today": "2.data.today"
+      },
+      "next_steps": []
+    },
+    {
+      "step_id": "6",
+      "name": "notify_hr_leave_reset",
+      "tool": "notify_hr_leave_reset",
+      "description": "Post leave-completed message to HR Slack channel. Runs for each record where needsReset=True.",
+      "parameters": {
+        "employee_name": "2.data.name",
+        "employee_email": "2.data.email",
+        "start_date": "2.data.startDate",
+        "end_date": "2.data.endDate"
+      },
+      "next_steps": []
+    }
+  ]
+}

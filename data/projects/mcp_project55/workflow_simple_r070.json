@@ -1,0 +1,165 @@
+{
+  "workflow": {
+    "name": "Automated QR Ticket Scanner & Validator",
+    "description": "Triggers on new QR scan data, validates ticket codes against a database, and appends results (VALID/TIDAK VALID) to a results sheet. Google Sheets mocked with local JSON.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "tags": [
+      "qr-code",
+      "ticket",
+      "validation",
+      "google-sheets-mock"
+    ]
+  },
+  "configuration": {
+    "mock_mode": true,
+    "environment_variables": {
+      "TICKET_DB_PATH": {
+        "required": false,
+        "description": "Path to ticket database JSON file",
+        "example": "data/tickets.json"
+      },
+      "SCAN_RESULTS_PATH": {
+        "required": false,
+        "description": "Path to scan results JSON file",
+        "example": "data/scan_results.json"
+      },
+      "FORM_RESPONSES_PATH": {
+        "required": false,
+        "description": "Path to form responses JSON file",
+        "example": "data/form_responses.json"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "get_form_responses",
+      "type": "trigger",
+      "description": "Simulate Google Sheets trigger - read all form responses (QR scan submissions).",
+      "mcp_tool": "get_form_responses",
+      "parameters": {
+        "input": {}
+      },
+      "source_nodes": [
+        "Sheets Update Trigger"
+      ],
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "select_latest_item",
+      "type": "transform",
+      "description": "Select the latest (last) item from the triggered data.",
+      "mcp_tool": "select_latest_item",
+      "parameters": {
+        "input": {
+          "items": "{{ step_1.result }}"
+        }
+      },
+      "source_nodes": [
+        "Select Latest Item (Code node)"
+      ],
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "set_ticket_code",
+      "type": "transform",
+      "description": "Extract QR code value as kode_tiket for lookup.",
+      "mcp_tool": "set_ticket_code",
+      "parameters": {
+        "input": {
+          "qr_code": "{{ step_2.result['QR code'] }}"
+        }
+      },
+      "source_nodes": [
+        "Set Ticket Code Field (Set node)"
+      ],
+      "next_steps": [
+        "4"
+      ]
+    },
+    {
+      "step_id": "4",
+      "name": "read_ticket_rows",
+      "type": "lookup",
+      "description": "Look up ticket in the database by ticket code (filter TIKET = kode_tiket).",
+      "mcp_tool": "read_ticket_rows",
+      "parameters": {
+        "input": {
+          "ticket_code": "{{ step_3.result.kode_tiket }}"
+        }
+      },
+      "source_nodes": [
+        "Read Trigger Sheet Rows (Google Sheets)"
+      ],
+      "next_steps": [
+        "5"
+      ]
+    },
+    {
+      "step_id": "5",
+      "name": "validate_ticket",
+      "type": "routing",
+      "description": "Route by conditional rules: VALID if ticket matches, TIDAK VALID otherwise.",
+      "mcp_tool": "validate_ticket",
+      "parameters": {
+        "input": {
+          "scanned_code": "{{ step_3.result.kode_tiket }}",
+          "matched_rows": "{{ step_4.result }}"
+        }
+      },
+      "source_nodes": [
+        "Route by Conditional Rules (Switch node)"
+      ],
+      "next_steps": [
+        "6a",
+        "6b"
+      ]
+    },
+    {
+      "step_id": "6a",
+      "name": "append_valid_result",
+      "type": "storage",
+      "description": "VALID path: Append scan result with full participant info and STATUS=VALID.",
+      "mcp_tool": "append_scan_result",
+      "parameters": {
+        "input": {
+          "ticket_id": "{{ step_5.matched_record.ID }}",
+          "nama": "{{ step_5.matched_record.NAMA }}",
+          "email": "{{ step_5.matched_record.EMAIL }}",
+          "no_hp": "{{ step_5.matched_record['NO HP'] }}",
+          "tiket": "{{ step_5.matched_record.TIKET }}",
+          "status": "VALID",
+          "ukuran_jersey": "{{ step_5.matched_record['UKURAN JERSEY'] }}",
+          "golongan_darah": "{{ step_5.matched_record['GOLONGAN DARAH'] }}"
+        }
+      },
+      "condition": "step_5.status == 'VALID'",
+      "source_nodes": [
+        "Append Scan Results (Google Sheets)"
+      ],
+      "next_steps": []
+    },
+    {
+      "step_id": "6b",
+      "name": "read_form_responses_for_invalid",
+      "type": "lookup",
+      "description": "TIDAK VALID path: Read form responses sheet to get context.",
+      "mcp_tool": "get_form_responses",
+      "parameters": {
+        "input": {}
+      },
+      "condition": "step_5.status == 'TIDAK VALID'",
+      "source_nodes": [
+        "Read Form Responses Sheet (Google Sheets)"
+      ],
+      "next_steps": []
+    }
+  ]
+}

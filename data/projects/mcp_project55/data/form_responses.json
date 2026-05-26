@@ -1,0 +1,17 @@
+[
+  {
+    "Timestamp": "2026-04-19T08:00:00",
+    "QR code": "TKT-001-ABC",
+    "NAMA": "Ahmad Rizky"
+  },
+  {
+    "Timestamp": "2026-04-19T08:05:00",
+    "QR code": "TKT-002-DEF",
+    "NAMA": "Siti Nurhaliza"
+  },
+  {
+    "Timestamp": "2026-04-19T08:10:00",
+    "QR code": "TKT-INVALID-999",
+    "NAMA": "Unknown Person"
+  }
+]

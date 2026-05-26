@@ -1,0 +1,220 @@
+{
+  "workflow": {
+    "name": "Collect historical price data from Polymarket Up/Down markets",
+    "description": "Two-phase workflow: (1) Collect all event IDs from a Polymarket series slug, (2) Batch-fetch historical price data for closed markets and store locally (mock Supabase).",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "polymarket",
+      "price-data",
+      "historical",
+      "supabase-mock"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "MOCK_EVENT_TABLE": {
+        "required": false,
+        "description": "Path to the local JSON file for event metadata storage",
+        "example": "data/event_table.json"
+      },
+      "MOCK_SUPABASE_TABLE": {
+        "required": false,
+        "description": "Path to the local JSON file for price data storage (mock Supabase)",
+        "example": "data/supabase_table.json"
+      },
+      "DEFAULT_SLUG": {
+        "required": false,
+        "description": "Default Polymarket market slug for testing",
+        "example": "bitcoin-up-or-down-january-12-8am-et"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "provide_slug",
+      "type": "trigger",
+      "description": "User provides the slug of a Polymarket Up/Down market",
+      "mcp_tool": null,
+      "parameters": {
+        "input": {
+          "slug": "bitcoin-up-or-down-january-12-8am-et"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "find_event_id_from_slug",
+      "type": "api_call",
+      "description": "Find the event ID from the market slug via gamma-api",
+      "mcp_tool": "find_event_id_from_slug",
+      "parameters": {
+        "input": {
+          "slug": "{{ step_1.slug }}"
+        }
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "find_series_id_from_event",
+      "type": "api_call",
+      "description": "Find the series ID from the first event ID",
+      "mcp_tool": "find_series_id_from_event",
+      "parameters": {
+        "input": {
+          "event_id": "{{ step_2.events[0].id }}"
+        }
+      },
+      "next_steps": [
+        "4"
+      ]
+    },
+    {
+      "step_id": "4",
+      "name": "find_all_events_for_series",
+      "type": "api_call",
+      "description": "Find all events belonging to the series",
+      "mcp_tool": "find_all_events_for_series",
+      "parameters": {
+        "input": {
+          "series_id": "{{ step_3.series[0].id }}"
+        }
+      },
+      "next_steps": [
+        "5"
+      ]
+    },
+    {
+      "step_id": "5",
+      "name": "split_events",
+      "type": "processing",
+      "description": "Split events array into individual event records",
+      "mcp_tool": "split_events",
+      "parameters": {
+        "input": {
+          "series_data": "{{ step_4 }}"
+        }
+      },
+      "next_steps": [
+        "6"
+      ]
+    },
+    {
+      "step_id": "6",
+      "name": "register_events",
+      "type": "storage",
+      "description": "Register each event into the local event table",
+      "mcp_tool": "register_event",
+      "parameters": {
+        "input": {
+          "event_id": "{{ event.id }}",
+          "closed": "{{ event.closed }}"
+        }
+      },
+      "next_steps": [
+        "7"
+      ]
+    },
+    {
+      "step_id": "7",
+      "name": "fetch_unprocessed_events",
+      "type": "storage",
+      "description": "Fetch up to 100 unprocessed events from the event table",
+      "mcp_tool": "fetch_unprocessed_events",
+      "parameters": {
+        "input": {
+          "limit": 100
+        }
+      },
+      "next_steps": [
+        "8"
+      ]
+    },
+    {
+      "step_id": "8",
+      "name": "fetch_up_down_tokens",
+      "type": "api_call",
+      "description": "Fetch UP/DOWN token IDs and end time for each event",
+      "mcp_tool": "fetch_up_down_tokens",
+      "parameters": {
+        "input": {
+          "event_id": "{{ event.EventId }}"
+        }
+      },
+      "next_steps": [
+        "9"
+      ]
+    },
+    {
+      "step_id": "9",
+      "name": "extract_and_store_tokens",
+      "type": "processing",
+      "description": "Extract tokens/endtime and store in event table",
+      "mcp_tool": "store_tokens_and_endtime",
+      "parameters": {
+        "input": {
+          "event_id": "{{ event.EventId }}",
+          "market_id": "{{ extracted.MarketId }}",
+          "end_time": "{{ extracted.EndTime }}",
+          "token_up": "{{ extracted.TokenUp }}",
+          "token_dw": "{{ extracted.TokenDw }}"
+        }
+      },
+      "next_steps": [
+        "10"
+      ]
+    },
+    {
+      "step_id": "10",
+      "name": "check_market_closed",
+      "type": "condition",
+      "description": "Check if the market is closed; skip open markets",
+      "mcp_tool": "check_market_closed",
+      "parameters": {
+        "input": {
+          "event_id": "{{ event.EventId }}"
+        }
+      },
+      "next_steps": [
+        "11"
+      ]
+    },
+    {
+      "step_id": "11",
+      "name": "convert_endtime_to_unix",
+      "type": "processing",
+      "description": "Convert end time to Unix timestamp (closed markets only)",
+      "mcp_tool": "convert_endtime_to_unix",
+      "parameters": {
+        "input": {
+          "end_time_str": "{{ event.EndTime }}"
+        }
+      },
+      "next_steps": [
+        "12"
+      ]
+    },
+    {
+      "step_id": "12",
+      "name": "set_start_time",
+      "type": "processing",
+      "description": "Set start time = end time - 3600 seconds (1 hour market)",
+      "mcp_tool": "set_start_time",
+      "parameters": {
+        "input": {
+          "end_time_unix": "{{ step_11.EndTimeUnix }}",
+          "duration_seconds": 3600
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}

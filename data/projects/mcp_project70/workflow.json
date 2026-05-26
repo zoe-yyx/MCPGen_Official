@@ -1,0 +1,191 @@
+{
+  "workflow": {
+    "name": "Turn Google Tasks into n8n Plans with Slack Approval & Archiving",
+    "description": "Daily schedule trigger fetches new Google Tasks ideas, uses GPT to design n8n workflow plans, sends them to Slack for approval, archives approved plans to Google Sheets, and marks tasks as processed.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "google-tasks",
+      "slack",
+      "google-sheets",
+      "AI",
+      "automation",
+      "n8n",
+      "scheduling"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "API key for OpenAI GPT used to generate n8n workflow plans",
+        "validation_pattern": "^sk-.*$",
+        "example": "REDACTED_API_KEY"
+      },
+      "OPENAI_BASE_URL": {
+        "required": true,
+        "description": "Base URL for OpenAI-compatible API endpoint",
+        "validation_pattern": "^https?://.+$",
+        "example": "ENDPOINT_PLACEHOLDER"
+      },
+      "MODEL": {
+        "required": false,
+        "description": "LLM model name for solution architecture generation",
+        "validation_pattern": "^[\\w\\-\\.]+$",
+        "example": "gpt-5.1"
+      },
+      "SLACK_CHANNEL_ID": {
+        "required": false,
+        "description": "Slack channel ID for sending review messages (mocked)",
+        "validation_pattern": "^[A-Z0-9]+$",
+        "example": "C0123456789"
+      },
+      "GOOGLE_TASKS_LIST_ID": {
+        "required": false,
+        "description": "Google Tasks list ID to fetch ideas from (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "example_list"
+      },
+      "GOOGLE_SHEETS_ID": {
+        "required": false,
+        "description": "Google Sheets document ID for archiving (mocked)",
+        "validation_pattern": "^.+$",
+        "example": "example_sheet"
+      },
+      "SLACK_AUTO_APPROVE": {
+        "required": false,
+        "description": "Set to 'true' to auto-approve Slack reviews without human interaction",
+        "validation_pattern": "^(true|false)$",
+        "example": "true"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "Schedule Trigger",
+      "type": "trigger",
+      "description": "Daily trigger at 9am to start the workflow. Inline in run_workflow.py; no MCP tool needed.",
+      "mcp_tool": null,
+      "parameters": {
+        "input": {
+          "trigger_hour": 9
+        }
+      },
+      "next_steps": ["2"]
+    },
+    {
+      "step_id": "2",
+      "name": "Get New Ideas",
+      "type": "processing",
+      "description": "Fetch up to 5 tasks from mock Google Tasks list",
+      "mcp_tool": "get_new_ideas",
+      "parameters": {
+        "input": {
+          "limit": 5
+        }
+      },
+      "next_steps": ["3"]
+    },
+    {
+      "step_id": "3",
+      "name": "Filter Processed",
+      "type": "routing",
+      "description": "Remove tasks whose notes already contain '✅ Processed'",
+      "mcp_tool": "filter_processed",
+      "parameters": {
+        "input": {
+          "tasks_json": "{{ step2.data }}"
+        }
+      },
+      "next_steps": ["4"]
+    },
+    {
+      "step_id": "4",
+      "name": "Iterate Ideas",
+      "type": "control",
+      "description": "Iterate through each filtered idea one by one (SplitInBatches equivalent). Inline loop in run_workflow.py; no MCP tool needed.",
+      "mcp_tool": null,
+      "parameters": {
+        "input": {
+          "tasks": "{{ step3.data.tasks }}"
+        }
+      },
+      "next_steps": ["5"]
+    },
+    {
+      "step_id": "5",
+      "name": "AI Solution Architect",
+      "type": "ai_processing",
+      "description": "GPT designs a complete n8n workflow plan for the idea: title, nodes, challenges, improvements, alternatives, slack_message",
+      "mcp_tool": "ai_solution_architect",
+      "parameters": {
+        "input": {
+          "idea_title": "{{ step4.data.current_idea.title }}"
+        }
+      },
+      "next_steps": ["6"]
+    },
+    {
+      "step_id": "6",
+      "name": "Slack Review & Approve",
+      "type": "output",
+      "description": "Send AI plan to Slack channel and wait for Approve or Regenerate response (mocked)",
+      "mcp_tool": "slack_review_approve",
+      "parameters": {
+        "input": {
+          "slack_message": "{{ step5.data.output.slack_message }}",
+          "idea_title": "{{ step5.data.output.title }}"
+        }
+      },
+      "next_steps": ["7"]
+    },
+    {
+      "step_id": "7",
+      "name": "Check Approval",
+      "type": "routing",
+      "description": "Check if the Slack response is 'Approve' or 'Regenerate'",
+      "mcp_tool": "check_approval",
+      "parameters": {
+        "input": {
+          "slack_response_json": "{{ step6.data }}"
+        }
+      },
+      "next_steps": ["8", "5"]
+    },
+    {
+      "step_id": "8",
+      "name": "Archive to Sheets",
+      "type": "output",
+      "description": "Append approved idea data to mock Google Sheets CSV file",
+      "mcp_tool": "archive_to_sheets",
+      "condition": "approved == true",
+      "parameters": {
+        "input": {
+          "idea_title": "{{ step5.data.output.title }}",
+          "nodes": "{{ step5.data.output.nodes }}",
+          "challenges": "{{ step5.data.output.challenges }}",
+          "improvements": "{{ step5.data.output.improvements }}",
+          "alternatives": "{{ step5.data.output.alternatives }}",
+          "source_task_id": "{{ step4.data.current_idea.id }}"
+        }
+      },
+      "next_steps": ["9"]
+    },
+    {
+      "step_id": "9",
+      "name": "Mark as Notified",
+      "type": "processing",
+      "description": "Update task notes to '✅ Processed' in mock Google Tasks",
+      "mcp_tool": "mark_as_notified",
+      "condition": "approved == true",
+      "parameters": {
+        "input": {
+          "task_id": "{{ step4.data.current_idea.id }}"
+        }
+      },
+      "next_steps": ["4"]
+    }
+  ]
+}

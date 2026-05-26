@@ -1,0 +1,23 @@
+[project]
+name = "mcp-project59-image-to-video"
+version = "1.0.0"
+description = "AI Image to Professional Video Workflow using NanoBanana Ultra & Kling AI (mock mode)"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "loguru>=0.7.0",
+    "Pillow>=10.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["mcp_server"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]

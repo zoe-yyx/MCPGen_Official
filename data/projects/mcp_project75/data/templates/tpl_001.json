@@ -1,0 +1,28 @@
+{
+  "id": "tpl_001",
+  "name": "SATIŞ SÖZLEŞMESİ",
+  "description": "Product/goods sales contract between seller and buyer",
+  "placeholders": [
+    "SELLER_NAME",
+    "BUYER_NAME",
+    "PRODUCT_NAME",
+    "PRICE",
+    "DELIVER_DATE",
+    "TODAY_DATE"
+  ],
+  "conditionals": [
+    {
+      "flag": "MANDATE_INSTALLMENT",
+      "label": "Installment Payment",
+      "help": "Include installment payment terms in the contract?",
+      "placeholders": ["INSTALLMENT_PLAN"]
+    },
+    {
+      "flag": "GUARANTEE",
+      "label": "Warranty / Guarantee",
+      "help": "Include a warranty/guarantee clause?",
+      "placeholders": ["GUARANTEE_PERIOD"]
+    }
+  ],
+  "content": "SATIŞ SÖZLEŞMESİ\n================\n\nBu sözleşme aşağıdaki taraflar arasında {{TODAY_DATE}} tarihinde akdedilmiştir.\n\nSATICI: {{SELLER_NAME}}\nALICI : {{BUYER_NAME}}\n\nMADDE 1 – KONU\nSatıcı, aşağıda belirtilen ürünü alıcıya satmayı, alıcı ise bu ürünü almayı kabul eder.\n\nÜRÜN  : {{PRODUCT_NAME}}\nFİYAT : {{PRICE}} TL\nTESLİM: {{DELIVER_DATE}}\n\n[[MANDATE_INSTALLMENT:START]]\nMADDE 2 – TAKSİT\nTaraflar, ödemenin aşağıdaki taksit planına göre yapılmasını kabul eder.\nTAKSİT PLANI: {{INSTALLMENT_PLAN}}\n[[MANDATE_INSTALLMENT:END]]\n\n[[GUARANTEE:START]]\nMADDE 3 – GARANTİ\nSatıcı, ürün için {{GUARANTEE_PERIOD}} aylık garanti sağlar.\n[[GUARANTEE:END]]\n\nMADDE 4 – İMZA\nHer iki taraf bu sözleşmeyi okumuş ve kabul etmiştir.\n\nSatıcı İmzası: _______________   Alıcı İmzası: _______________\n"
+}

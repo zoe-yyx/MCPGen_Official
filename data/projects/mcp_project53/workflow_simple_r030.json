@@ -1,0 +1,99 @@
+{
+  "workflow": {
+    "name": "Legal & Compliance Document Archiving",
+    "description": "Automates HR contract archiving: validate → duplicate-check → CDN upload → local Drive storage → record upsert → email notification → audit response.",
+    "type": "mcp_workflow",
+    "version": "1.0.0",
+    "origin": "ENDPOINT_PLACEHOLDER",
+    "tags": [
+      "hr",
+      "contracts",
+      "compliance",
+      "archiving",
+      "document-management"
+    ]
+  },
+  "configuration": {
+    "environment_variables": {
+      "HR_EMAIL": {
+        "required": false,
+        "description": "HR manager's email address for confirmation notifications",
+        "example": "EMAIL_PLACEHOLDER"
+      },
+      "SMTP_HOST": {
+        "required": false,
+        "description": "SMTP server hostname for sending emails",
+        "example": "smtp.gmail.com"
+      },
+      "SMTP_PORT": {
+        "required": false,
+        "description": "SMTP server port",
+        "example": "587"
+      },
+      "SMTP_USER": {
+        "required": false,
+        "description": "SMTP login username (usually the sender email)",
+        "example": "EMAIL_PLACEHOLDER"
+      },
+      "SMTP_PASSWORD": {
+        "required": false,
+        "description": "SMTP login password or app-specific password",
+        "example": "your_smtp_password"
+      }
+    }
+  },
+  "workflow_steps": [
+    {
+      "step_id": "1",
+      "name": "validate_and_enrich",
+      "type": "processing",
+      "description": "Sanitise and normalise all inputs. Generate structured filename and Drive folder path.",
+      "mcp_tool": "tool_validate_and_enrich",
+      "parameters": {
+        "input": {
+          "employee_name": "Sarah Johnson",
+          "filename": "contract-signed.pdf",
+          "employee_id": "EMP-0042",
+          "employee_email": "EMAIL_PLACEHOLDER",
+          "contract_type": "Full-Time Employment",
+          "department": "Engineering",
+          "effective_date": "2025-03-01",
+          "notify_employee": true,
+          "filed_by": "HR System"
+        }
+      },
+      "next_steps": [
+        "2"
+      ]
+    },
+    {
+      "step_id": "2",
+      "name": "check_duplicate",
+      "type": "processing",
+      "description": "Search for an existing filed contract for this employee. Halt with 409 if found.",
+      "mcp_tool": "tool_check_duplicate",
+      "parameters": {
+        "input": {
+          "employee_id": "{{ step_1.employeeId }}"
+        }
+      },
+      "next_steps": [
+        "3"
+      ]
+    },
+    {
+      "step_id": "3",
+      "name": "upload_to_cdn",
+      "type": "processing",
+      "description": "Stage the document in local CDN storage and obtain a stable URL.",
+      "mcp_tool": "tool_upload_to_cdn",
+      "parameters": {
+        "input": {
+          "file_path": "results/outputs/sample_contract.pdf",
+          "structured_filename": "{{ step_1.structuredFilename }}"
+        }
+      },
+      "next_steps": []
+    }
+  ]
+}
