@@ -5,9 +5,9 @@ This directory contains the streamlined evaluation code used for the MCP workflo
 
 ## What is included
 
-- `tasks/q1_tool_generation.py`: tool generation benchmark
-- `tasks/q2_workflow_ordering.py`: workflow ordering benchmark
-- `tasks/q3_incremental_evolution.py`: workflow extension benchmark
+- `tasks/tool_generation.py`: tool generation benchmark
+- `tasks/workflow_ordering.py`: workflow ordering benchmark
+- `tasks/incremental_evolution.py`: workflow extension benchmark
 - `utils/`: shared helpers used by the three tasks
 - `core/config.py`: configuration loading and validation
 
