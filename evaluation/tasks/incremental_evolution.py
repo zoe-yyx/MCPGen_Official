@@ -1,7 +1,6 @@
 """
-tasks/q3_incremental_evolution.py
+tasks/incremental_evolution.py
 
-Q3: Incremental Evolution Evaluation
 ------------------------------------
 
 Goal:
