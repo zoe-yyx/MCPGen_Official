@@ -1,5 +1,5 @@
 """
-tasks/q2_workflow_ordering.py
+tasks/workflow_ordering.py
 
 
 
