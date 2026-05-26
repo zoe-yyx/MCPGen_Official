@@ -22,7 +22,7 @@ Any secret or private value has been replaced with a neutral placeholder such as
 
 - `REDACTED_API_KEY`
 - `REDACTED_SERVICE_TOKEN`
-- `ENDPOINT_PLACEHOLDER
+- `ENDPOINT_PLACEHOLDER`
 - `EMAIL_PLACEHOLDER`
 
 These placeholders are present only to preserve file structure and reproducibility of the benchmark code.
@@ -34,4 +34,3 @@ The `evaluation/` directory contains the streamlined evaluation pipeline for the
 ## Usage
 
 The repository is intended for offline inspection and evaluation setup. Update the placeholder values in `.env` files only in your local environment before running experiments.
-
