@@ -1,6 +1,6 @@
 """
 Evaluation Configuration Management
-Configuration management for MCPFlow tools generation evaluation framework
+Configuration management for MCPGen tools generation evaluation framework
 """
 
 import logging
